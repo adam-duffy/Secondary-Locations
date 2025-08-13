@@ -17,21 +17,24 @@
   header h1{font-size:1.2rem;margin:0} header p{margin:2px 0 0;color:var(--muted);font-size:.95rem}
   .card{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(0,0,0,.15));border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:14px}
   .tabs{display:flex;gap:10px;margin-bottom:10px}
-  .tab{flex:1;text-align:center;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#0f172a;color:var(--text);font-weight:600;cursor:pointer;user-select:none}
+  .tab{flex:1;text-align:center;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#0f172a;color:var(--text);font-weight:600;cursor:pointer;user-select:none;outline:2px solid transparent}
   .tab[aria-selected="true"]{outline:2px solid var(--accent);background:#0b1226}
-  #cameraPanel,#hidPanel{display:none}.panel-active{display:block}
+  /* Panels hidden until a tab is chosen */
+  #cameraPanel,#hidPanel{display:none}
+  .panel-active{display:block}
   .controls{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 12px}
   button.primary{flex:1;min-width:140px;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0ea5e9,#22d3ee);color:#001222;font-weight:800;cursor:pointer}
   button.secondary{padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#0f172a;color:var(--text);font-weight:700;cursor:pointer}
   button:disabled{opacity:.5;cursor:not-allowed}
   #preview{width:100%;aspect-ratio:16/10;border-radius:14px;overflow:hidden;background:#030712;border:2px solid rgba(255,255,255,.06);display:grid;place-items:center}
-  video{width:100%;height:100%;object-fit:cover}
+  video{width:100%;height:100%;object-fit:cover;display:block}
   #preview.flash{animation:flash .6s ease-out}
   @keyframes flash{0%{box-shadow:0 0 0 0 rgba(34,211,238,0.9);border-color:#22d3ee}100%{box-shadow:0 0 0 12px rgba(34,211,238,0);border-color:rgba(255,255,255,.06)}}
   .status{font-size:.95rem;color:var(--muted);margin:6px 2px;min-height:1.2em}
   input[type="text"]{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#0f172a;color:var(--text);font-size:1.05rem}
   .code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:1.05rem;background:#0b1226;border:1px dashed rgba(255,255,255,.18);border-radius:12px;padding:10px;margin-top:8px}
   footer{margin-top:22px;color:var(--muted);font-size:.85rem;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .hint{font-size:.95rem;color:var(--muted);margin:8px 0}
 </style>
 </head>
 <body>
@@ -40,27 +43,29 @@
       <div class="logo" aria-hidden="true">📷</div>
       <div>
         <h1>Universal Scanner — Camera & HID</h1>
-        <p>Tabs now trigger actions: Camera auto-starts; HID focuses input.</p>
+        <p>Select a tab to begin.</p>
       </div>
     </header>
 
     <div class="card" role="region" aria-label="Scanner">
       <div class="tabs" role="tablist">
-        <div class="tab" id="tab-camera" role="tab" aria-selected="true" aria-controls="cameraPanel">Camera</div>
+        <div class="tab" id="tab-camera" role="tab" aria-selected="false" aria-controls="cameraPanel">Camera</div>
         <div class="tab" id="tab-hid" role="tab" aria-selected="false" aria-controls="hidPanel">Barcode Scanner (HID)</div>
       </div>
 
-      <section id="cameraPanel" class="panel-active" role="tabpanel" aria-labelledby="tab-camera">
-        <div id="preview" aria-label="Live camera preview"><div style="opacity:.55">Camera preview will appear here</div></div>
+      <!-- CAMERA -->
+      <section id="cameraPanel" role="tabpanel" aria-labelledby="tab-camera">
+        <div id="preview" aria-label="Live camera preview"><div class="hint">Camera preview will appear here</div></div>
         <div class="controls">
           <button id="btnStart" class="primary">Start camera</button>
           <button id="btnPerm" class="secondary">Request permission</button>
           <button id="btnStop" class="secondary" disabled>Stop</button>
           <button id="btnFlip" class="secondary" disabled>Flip camera</button>
         </div>
-        <div class="status" id="status">Idle. Tap <strong>Start camera</strong>.</div>
+        <div class="status" id="status">Choose Camera to start.</div>
       </section>
 
+      <!-- HID -->
       <section id="hidPanel" role="tabpanel" aria-labelledby="tab-hid">
         <p class="status">HID mode: focus the box and scan/type.</p>
         <input id="hidInput" type="text" inputmode="none" autocomplete="off" spellcheck="false" placeholder="Click here, then scan…" />
@@ -85,45 +90,45 @@
     const statusEl = $('#status');
     const capsEl = $('#capabilities');
     const preview = $('#preview');
-    const videoEl = document.createElement('video');
-    videoEl.setAttribute('playsinline',''); // iOS inline playback
+    let videoEl = null;
     let currentStream = null;
-    let cameras = []; // list of videoinput devices
+    let cameras = [];
     let camIndex = -1;
 
     const secure = (location.protocol === 'https:' || location.hostname === 'localhost');
     const camCap = ('mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices);
     capsEl.textContent = `${camCap ? '🎥 Camera API' : '🚫 No camera API'} · ${secure ? '🔒 Secure' : '⚠️ Not secure'} · ✅ JS running`;
 
-    function setStatus(msg){ if(statusEl) statusEl.innerHTML = msg; }
-    function flash(){ preview.classList.remove('flash'); void preview.offsetWidth; preview.classList.add('flash'); }
+    const setStatus = (msg)=>{ if(statusEl) statusEl.innerHTML = msg; };
+    const flash = ()=>{ preview.classList.remove('flash'); void preview.offsetWidth; preview.classList.add('flash'); };
 
-    // ---------- Tabs (now with actions) ----------
+    // ---------- Tabs (none selected initially) ----------
     const tabCamera = $('#tab-camera'), tabHid = $('#tab-hid');
     const cameraPanel = $('#cameraPanel'), hidPanel = $('#hidPanel');
-    function activateTab(which){
+
+    function selectTab(which){
       const cam = which==='camera';
       tabCamera.setAttribute('aria-selected', cam);
       tabHid.setAttribute('aria-selected', !cam);
       cameraPanel.classList.toggle('panel-active', cam);
       hidPanel.classList.toggle('panel-active', !cam);
-      if (cam) {
+      if (cam){
         // Auto-start camera if not running
         if (!currentStream) startCamera();
       } else {
-        // Stop camera, focus HID input, show ready state
         stopCamera();
-        const inp = $('#hidInput');
-        if (inp){ inp.focus(); }
-        const ts = $('#typeStatus');
-        if (ts){ ts.textContent = 'Ready — scan now'; }
+        const inp = $('#hidInput'); if (inp) inp.focus();
+        const ts = $('#typeStatus'); if (ts) ts.textContent = 'Ready — scan now';
       }
     }
-    tabCamera.addEventListener('click', ()=>activateTab('camera'));
-    tabHid.addEventListener('click', ()=>activateTab('hid'));
 
-    // ---------- Camera core (no libs) ----------
-    async function listCamerasAfterPermission(){
+    tabCamera.addEventListener('click', ()=> selectTab('camera'));
+    tabHid.addEventListener('click', ()=> selectTab('hid'));
+
+    // Panels are hidden by default until a tab is chosen.
+
+    // ---------- Camera (no libs) ----------
+    async function listCameras(){
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         cameras = devices.filter(d=>d.kind==='videoinput');
@@ -131,14 +136,41 @@
       } catch { cameras = []; }
     }
 
-    function attachStream(stream){
-      stopCamera(); // stop any previous
-      currentStream = stream;
-      videoEl.srcObject = stream;
+    function ensureVideoEl(){
+      if (videoEl) return videoEl;
+      videoEl = document.createElement('video');
+      videoEl.setAttribute('playsinline',''); // iOS inline
+      videoEl.muted = true;                  // allow autoplay without gesture
       videoEl.autoplay = true;
-      videoEl.muted = true;
+      videoEl.style.width = '100%';
+      videoEl.style.height = '100%';
+      videoEl.style.objectFit = 'cover';
+      return videoEl;
+    }
+
+    async function attachStream(stream){
+      // Clear any prior stream/UI
+      stopCamera();
+      currentStream = stream;
+
+      const v = ensureVideoEl();
+      v.srcObject = stream;
+
+      // Put video into the preview container BEFORE play()
       preview.innerHTML = '';
-      preview.appendChild(videoEl);
+      preview.appendChild(v);
+
+      // Try to start rendering
+      try {
+        await v.play(); // critical for Safari/iOS
+      } catch(e) {
+        // If autoplay prevented, prompt user interaction
+        setStatus(`<span style="color:var(--warn)">Tap Start again</span> to begin video (autoplay blocked): ${e.message || e}`);
+      }
+
+      // Update when we can render frames
+      v.addEventListener('loadedmetadata', ()=> setStatus('Camera streaming…'));
+      v.addEventListener('canplay', ()=> setStatus('Live preview active.'));
     }
 
     async function startCamera(){
@@ -149,44 +181,44 @@
       if (!camCap){ setStatus('<span style="color:#ef4444">Camera API not supported in this browser.</span>'); $('#btnStart').disabled=false; $('#btnStart').textContent='Start camera'; return; }
       if (!secure){ setStatus('<span style="color:#f59e0b">Tip:</span> Use HTTPS or localhost — many browsers block camera on HTTP.'); }
 
-      try{
+      try {
         // Prefer rear camera; desktop may ignore facingMode
-        const constraints = { video: { facingMode: { ideal: 'environment' } }, audio:false };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        attachStream(stream);
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio:false });
+        await attachStream(stream);
         setStatus('Camera running — live preview above.');
         $('#btnStop').disabled = false;
 
-        await listCamerasAfterPermission();
+        await listCameras();
         $('#btnFlip').disabled = !(cameras && cameras.length >= 2);
-      }catch(e){
+      } catch (e){
         setStatus(`<span style="color:#ef4444">Camera error:</span> ${e.message || e}`);
         $('#btnStart').disabled=false; $('#btnStart').textContent='Start camera';
       }
     }
 
     async function stopCamera(){
-      try{ if (currentStream){ currentStream.getTracks().forEach(t=>t.stop()); } }catch{}
+      try { if (currentStream) currentStream.getTracks().forEach(t=>t.stop()); } catch {}
       currentStream = null;
+      if (videoEl) { try { videoEl.pause(); } catch {} }
       $('#btnStart').disabled = false; $('#btnStart').textContent = 'Start camera';
       $('#btnStop').disabled = true;
-      // keep Flip state
+      // keep Flip state as-is
     }
 
     async function flipCamera(){
       if (!cameras || cameras.length < 2) return;
-      try{
+      try {
         camIndex = (camIndex + 1) % cameras.length;
         const deviceId = cameras[camIndex].deviceId;
         const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } }, audio:false });
-        attachStream(stream);
+        await attachStream(stream);
         setStatus(`Switched camera (${cameras[camIndex].label || 'camera ' + (camIndex+1)})`);
-      }catch(e){
+      } catch (e){
         setStatus(`<span style="color:#ef4444">Flip failed:</span> ${e.message || e}`);
       }
     }
 
-    // ---------- HID typing (proof of wiring) ----------
+    // ---------- HID typing ----------
     const hidInput = $('#hidInput');
     const hidAuto = $('#hidAuto');
     const btnClearHid = $('#btnClearHid');
@@ -206,7 +238,7 @@
       if(e.key==='Enter' || e.key==='Tab'){ e.preventDefault(); doneTyping(); }
     });
     hidInput.addEventListener('input', ()=> {
-      if(typeStatus) typeStatus.textContent='⌨️ Typing…';
+      if(typeStatus) typeStatus.textContent = '⌨️ Typing…';
       if(hidEcho) hidEcho.textContent = hidInput.value;
       if(!hidAuto.checked) return;
       clearTimeout(typeTimer); typeTimer=setTimeout(doneTyping, DONE_GAP_MS);
@@ -222,15 +254,15 @@
       try{
         const s = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
         s.getTracks().forEach(t=>t.stop());
-        setStatus('Permission granted. Tap Start camera.');
-        await listCamerasAfterPermission();
+        setStatus('Permission granted. Choose Camera → Start.');
+        await listCameras();
         $('#btnFlip').disabled = !(cameras && cameras.length >= 2);
       }catch(e){
         setStatus(`<span style="color:#ef4444">Permission denied:</span> ${e.message || e}`);
       }
     });
 
-    // Show unexpected JS errors instead of “nothing happens”
+    // Visible errors (so we never get “nothing happens”)
     window.addEventListener('error', (e)=>{
       setStatus('<span style="color:#ef4444">JavaScript error:</span> ' + (e && e.message ? e.message : e));
     });
