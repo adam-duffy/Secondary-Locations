@@ -6,12 +6,13 @@
 <meta name="theme-color" content="#111827" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>Universal Scanner — Top Display</title>
+<title>Universal Scanner — Camera & HID</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%93%8B%3C/text%3E%3C/svg%3E">
 <style>
   :root{--bg:#0b1020;--panel:#111827;--text:#e5e7eb;--muted:#9ca3af;--accent:#22d3ee;--warn:#f59e0b;--error:#ef4444;--radius:18px}
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:radial-gradient(1200px 800px at 50% -10%,#1f2937 0%,var(--bg) 60%);color:var(--text);-webkit-tap-highlight-color:transparent}
-  .container{max-width:720px;margin:0 auto;padding:16px 16px 28px;display:flex;flex-direction:column;gap:14px}
+  .container{max-width:720px;margin:0 auto;padding:16px 16px 24px;display:flex;flex-direction:column;gap:14px}
 
   /* Permanent top display (~20% of portrait height) */
   #displayBox{
@@ -21,9 +22,7 @@
     background:#030712; display:grid; place-items:center;
     position:relative;
   }
-  #displayBox .placeholder{
-    color:var(--muted); font-size:1.05rem; text-align:center; padding:0 12px;
-  }
+  #displayBox .placeholder{ color:var(--muted); font-size:1.05rem; text-align:center; padding:0 12px; }
   #displayBox video{ width:100%; height:100%; object-fit:cover; display:block; }
   #displayLabel{
     position:absolute; left:10px; top:10px; padding:4px 8px; border-radius:10px;
@@ -33,35 +32,37 @@
 
   header{display:flex;align-items:center;gap:12px}
   header .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#1e293b,#0ea5e9);display:grid;place-items:center;box-shadow:0 8px 24px rgba(0,0,0,.35)}
-  header h1{font-size:1.15rem;margin:0} header p{margin:2px 0 0;color:var(--muted);font-size:.95rem}
+  header h1{font-size:1.1rem;margin:0} header p{margin:2px 0 0;color:var(--muted);font-size:.95rem}
 
   .card{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(0,0,0,.15));border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:14px}
-  .tabs{display:flex;gap:10px;margin-bottom:10px}
+
+  .tabs{display:flex;gap:10px;margin-bottom:8px}
   .tab{flex:1;text-align:center;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#0f172a;color:var(--text);font-weight:600;cursor:pointer;user-select:none;outline:2px solid transparent}
   .tab[aria-selected="true"]{outline:2px solid var(--accent);background:#0b1226}
+
+  /* GLOBAL status (always visible) */
+  #globalStatus{margin:0 2px 10px;color:var(--muted);font-size:.95rem;min-height:1.2em}
 
   /* Panels hidden until chosen */
   #cameraPanel,#hidPanel{display:none}
   .panel-active{display:block}
 
-  .controls{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 12px}
-  button.primary{flex:1;min-width:140px;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0ea5e9,#22d3ee);color:#001222;font-weight:800;cursor:pointer}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 10px}
   button.secondary{padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#0f172a;color:var(--text);font-weight:700;cursor:pointer}
   button:disabled{opacity:.5;cursor:not-allowed}
 
-  .status{font-size:.95rem;color:var(--muted);margin:6px 2px;min-height:1.2em}
+  .status{font-size:.9rem;color:var(--muted);margin:6px 2px;min-height:1.1em}
   input[type="text"]{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#0f172a;color:var(--text);font-size:1.05rem}
-  .code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:1.05rem;background:#0b1226;border:1px dashed rgba(255,255,255,.18);border-radius:12px;padding:10px;margin-top:8px}
-  footer{margin-top:4px;color:var(--muted);font-size:.85rem;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .row{display:flex;gap:10px;align-items:center;margin:10px 0}.row>*{flex:1}.label{min-width:120px;flex:0 0 auto;color:var(--muted);font-size:.95rem}
 </style>
 </head>
 <body>
   <div class="container">
-    <!-- Permanent top display -->
+    <!-- Top display -->
     <div id="displayBox" aria-live="polite">
       <div id="displayLabel">no input</div>
       <div class="placeholder" id="displayPlaceholder">select an input</div>
-      <!-- <video> inserted here when camera runs -->
+      <!-- video injected here -->
     </div>
 
     <header>
@@ -78,153 +79,137 @@
         <div class="tab" id="tab-hid" role="tab" aria-selected="false" aria-controls="hidPanel">Barcode Scanner (HID)</div>
       </div>
 
+      <!-- GLOBAL status bar -->
+      <div id="globalStatus">Select an input.</div>
+
+      <!-- GLOBAL result for both modes -->
+      <div class="row">
+        <div class="label">Scan result</div>
+        <input id="resultBox" type="text" placeholder="Scan a barcode (camera or HID)..." readonly />
+      </div>
+
       <!-- CAMERA -->
       <section id="cameraPanel" role="tabpanel" aria-labelledby="tab-camera">
         <div class="controls">
-          <button id="btnStart" class="primary">Start camera</button>
           <button id="btnPerm" class="secondary">Request permission</button>
-          <button id="btnStop" class="secondary" disabled>Stop</button>
           <button id="btnFlip" class="secondary" disabled>Flip camera</button>
         </div>
-        <div class="status" id="status">Choose Camera, then Start.</div>
+        <div class="status" id="status">Choose Camera to start.</div>
       </section>
 
       <!-- HID -->
       <section id="hidPanel" role="tabpanel" aria-labelledby="tab-hid">
-        <p class="status">HID mode: focus the box and scan/type.</p>
-        <input id="hidInput" type="text" inputmode="none" autocomplete="off" spellcheck="false" placeholder="Click here, then scan…" />
+        <p class="status">HID mode: type or scan — no need to click the field.</p>
+        <input id="hidInput" type="text" autocomplete="off" spellcheck="false" placeholder="(Optional) click here, then scan…" />
         <div class="controls">
           <button id="btnClearHid" class="secondary">Clear</button>
           <label class="status"><input type="checkbox" id="hidAuto" checked /> Auto-detect when typing stops</label>
         </div>
         <div class="status" id="typeStatus"></div>
-        <div class="code" id="hidEcho">No input yet.</div>
       </section>
     </div>
-
-    <footer>
-      <div>Tip: use HTTPS or localhost for camera access.</div>
-      <div id="capabilities"></div>
-    </footer>
   </div>
 
   <script>
-    // ---------- Utilities ----------
+    // ---------- Shorthands ----------
     const $ = (s)=>document.querySelector(s);
-    const statusEl = $('#status');
-    const capsEl = $('#capabilities');
+
+    // Elements
+    const globalStatus = $('#globalStatus');
+    const statusEl = $('#status'); // camera-panel local status
     const displayBox = $('#displayBox');
     const displayLabel = $('#displayLabel');
     const displayPlaceholder = $('#displayPlaceholder');
+    const resultBox = $('#resultBox');
+    const tabCamera = $('#tab-camera'), tabHid = $('#tab-hid');
+    const cameraPanel = $('#cameraPanel'), hidPanel = $('#hidPanel');
+    const btnPerm = $('#btnPerm'), btnFlip = $('#btnFlip');
 
-    let videoEl = null;
-    let currentStream = null;
-    let cameras = [];
-    let camIndex = -1;
+    // HID elements
+    const hidInput = $('#hidInput');
+    const hidAuto  = $('#hidAuto');
+    const btnClearHid = $('#btnClearHid');
+    const typeStatus = $('#typeStatus');
 
-    const secure = (location.protocol === 'https:' || location.hostname === 'localhost');
-    const camCap = ('mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices);
-    capsEl.textContent = `${camCap ? '🎥 Camera API' : '🚫 No camera API'} · ${secure ? '🔒 Secure' : '⚠️ Not secure'} · ✅ JS running`;
+    // ---------- Status helpers (global + camera panel) ----------
+    function setStatus(msg){
+      if (globalStatus) globalStatus.innerHTML = msg;
+      if (statusEl && cameraPanel.classList.contains('panel-active')) statusEl.innerHTML = msg;
+    }
 
-    const setStatus = (msg)=>{ if(statusEl) statusEl.innerHTML = msg; };
+    // ---------- Top display + camera state ----------
+    let videoEl = null, currentStream = null, cameras = [], camIndex = -1, cameraRunning = false, decoding = false;
 
-    // ---------- Top display helpers ----------
-    function clearDisplayToMessage(msg, label='no input'){
-      // Remove any video and show a placeholder message
+    function showDisplayMessage(msg, label='no input'){
       const existingVideo = displayBox.querySelector('video');
       if (existingVideo) existingVideo.remove();
       displayPlaceholder.textContent = msg;
       displayPlaceholder.style.display = 'block';
       displayLabel.textContent = label;
     }
-
-    function showDisplayMessage(msg, label){
-      clearDisplayToMessage(msg, label);
-    }
-
     async function showDisplayVideoWithStream(stream, label='camera'){
-      // Remove placeholder, inject/prepare video, play
       displayPlaceholder.style.display = 'none';
       displayLabel.textContent = label;
-
       if (!videoEl){
         videoEl = document.createElement('video');
-        videoEl.setAttribute('playsinline','');  // iOS inline playback
-        videoEl.setAttribute('muted','');        // attribute + property for iOS
+        videoEl.setAttribute('playsinline','');
+        videoEl.setAttribute('muted','');
         videoEl.muted = true;
         videoEl.autoplay = true;
         videoEl.style.width = '100%';
         videoEl.style.height = '100%';
         videoEl.style.objectFit = 'cover';
-      } else {
-        // Remove if already attached somewhere
-        if (videoEl.parentElement) videoEl.parentElement.removeChild(videoEl);
+      } else if (videoEl.parentElement) {
+        videoEl.parentElement.removeChild(videoEl);
       }
-
       videoEl.srcObject = stream;
       displayBox.appendChild(videoEl);
-
-      try {
-        await videoEl.play(); // important for Safari to actually render frames
-      } catch(e) {
-        setStatus(`<span style="color:var(--warn)">Tap Start again</span> to begin video (autoplay blocked): ${e.message || e}`);
-      }
-
-      videoEl.addEventListener('loadedmetadata', ()=> setStatus('Camera streaming…'));
-      videoEl.addEventListener('canplay', ()=> setStatus('Live preview active.'));
+      try { await videoEl.play(); } catch(e){ setStatus(`Tap Camera again if video didn't start: ${e.message||e}`); }
     }
 
-    // Initial state
+    // Initial UI
     showDisplayMessage('select an input', 'no input');
+    setStatus('Select an input.');
 
-    // ---------- Tabs ----------
-    const tabCamera = $('#tab-camera'), tabHid = $('#tab-hid');
-    const cameraPanel = $('#cameraPanel'), hidPanel = $('#hidPanel');
+    // ---------- Tabs (Camera toggles, HID activates capture) ----------
+    function setTabSelection(cameraSelected){
+      tabCamera.setAttribute('aria-selected', cameraSelected);
+      tabHid.setAttribute('aria-selected', !cameraSelected);
+      cameraPanel.classList.toggle('panel-active', cameraSelected);
+      hidPanel.classList.toggle('panel-active', !cameraSelected);
+    }
 
-    let cameraRunning = false;
+    // HID capture state (works even if input isn't focused)
+    let hidModeActive = false;
+    let hidBuffer = '';
+    let hidTimer = null;
+    const HID_COMMIT_MS = 120;
 
-    function selectTab(which){
-    const cam = which==='camera';
-    const currentlySelected = tabCamera.getAttribute('aria-selected') === 'true';
-
-    if (cam){
-        // If Camera tab is already selected, toggle camera on/off
-        if (currentlySelected) {
-        if (cameraRunning) {
-            stopCamera();
-            cameraRunning = false;
-            showDisplayMessage('camera stopped', 'camera');
-        } else {
-            startCamera().then(() => cameraRunning = true);
-        }
+    tabCamera.addEventListener('click', async ()=>{
+      const alreadySelected = tabCamera.getAttribute('aria-selected') === 'true';
+      hidModeActive = false; // disable HID capture in camera mode
+      if (alreadySelected){
+        if (cameraRunning){ await stopCamera(); showDisplayMessage('camera stopped', 'camera'); setStatus('Camera stopped.'); }
+        else { await startCamera(); }
         return;
-        }
+      }
+      setTabSelection(true);
+      await startCamera();
+    });
 
-        // Camera tab wasn't selected before → select it and start camera
-        tabCamera.setAttribute('aria-selected', true);
-        tabHid.setAttribute('aria-selected', false);
-        cameraPanel.classList.add('panel-active');
-        hidPanel.classList.remove('panel-active');
-        startCamera().then(() => cameraRunning = true);
+    tabHid.addEventListener('click', ()=>{
+      setTabSelection(false);
+      stopCamera();
+      showDisplayMessage('barcode scanner selected', 'barcode');
+      setStatus('HID ready — type/scan now.');
+      hidModeActive = true;
+      hidBuffer = '';
+      if (typeStatus) typeStatus.textContent = '';
+      if (hidInput) hidInput.value = '';
+      if (hidInput) hidInput.focus();
+    });
 
-    } else {
-        // HID tab selected
-        tabCamera.setAttribute('aria-selected', false);
-        tabHid.setAttribute('aria-selected', true);
-        cameraPanel.classList.remove('panel-active');
-        hidPanel.classList.add('panel-active');
-        stopCamera();
-        cameraRunning = false;
-        showDisplayMessage('barcode scanner selected', 'barcode');
-        const inp = $('#hidInput'); if (inp) inp.focus();
-        const ts = $('#typeStatus'); if (ts) ts.textContent = 'Ready — scan now';
-    }
-    }
-
-    tabCamera.addEventListener('click', ()=> selectTab('camera'));
-    tabHid.addEventListener('click', ()=> selectTab('hid'));
-
-    // ---------- Camera (no libs) ----------
+    // ---------- Camera core (kept ready for next testing) ----------
     async function listCameras(){
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -234,113 +219,214 @@
     }
 
     async function startCamera(){
-      setStatus('Start clicked ✓ — requesting camera…');
-      $('#btnStart').disabled = true; $('#btnStart').textContent = 'Starting…';
-
-      if (!camCap){ setStatus('<span style="color:#ef4444">Camera API not supported in this browser.</span>'); $('#btnStart').disabled=false; $('#btnStart').textContent='Start camera'; return; }
-      if (!secure){ setStatus('<span style="color:#f59e0b">Tip:</span> Use HTTPS or localhost — many browsers block camera on HTTP.'); }
-
+      setStatus('Requesting camera…');
       try {
+        // Warm-up permission helps Safari
+        const warm = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio:false });
+        warm.getTracks().forEach(t=>t.stop());
+
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio:false });
         await attachStream(stream);
-        $('#btnStop').disabled = false;
-
         await listCameras();
-        $('#btnFlip').disabled = !(cameras && cameras.length >= 2);
+        if (btnFlip) btnFlip.disabled = !(cameras && cameras.length >= 2);
+        cameraRunning = true;
+        startDecodingLoop(); // decoder is wired, but HID is the focus right now
       } catch (e){
         setStatus(`<span style="color:var(--error)">Camera error:</span> ${e.message || e}`);
-        $('#btnStart').disabled=false; $('#btnStart').textContent='Start camera';
+        cameraRunning = false;
       }
     }
 
     async function attachStream(stream){
-      // Stop any previous
       try { if (currentStream) currentStream.getTracks().forEach(t=>t.stop()); } catch {}
       currentStream = stream;
       await showDisplayVideoWithStream(stream, 'camera');
-      setStatus('Camera running — live preview above.');
+      setStatus('Camera running — point at a barcode.');
     }
 
     async function stopCamera(){
       try{ if (currentStream){ currentStream.getTracks().forEach(t=>t.stop()); } }catch{}
       currentStream = null;
       if (videoEl) { try { videoEl.pause(); } catch {} }
-      $('#btnStart').disabled = false; $('#btnStart').textContent = 'Start camera';
-      $('#btnStop').disabled = true;
-      // do not change top display here; caller decides message
+      cameraRunning = false;
+      decoding = false;
     }
 
-    async function flipCamera(){
+    btnPerm && btnPerm.addEventListener('click', async ()=>{
+      setStatus('Requesting camera permission…');
+      try{
+        const s = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+        s.getTracks().forEach(t=>t.stop());
+        setStatus('Permission granted. Choose Camera.');
+        await listCameras();
+        if (btnFlip) btnFlip.disabled = !(cameras && cameras.length >= 2);
+      }catch(e){
+        setStatus(`<span style="color:var(--error)">Permission denied:</span> ${e.message || e}`);
+      }
+    });
+
+    btnFlip && btnFlip.addEventListener('click', async ()=>{
       if (!cameras || cameras.length < 2) return;
       try{
         camIndex = (camIndex + 1) % cameras.length;
         const deviceId = cameras[camIndex].deviceId;
         const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } }, audio:false });
         await attachStream(stream);
+        startDecodingLoop();
         setStatus(`Switched camera (${cameras[camIndex].label || 'camera ' + (camIndex+1)})`);
       }catch(e){
         setStatus(`<span style="color:var(--error)">Flip failed:</span> ${e.message || e}`);
       }
+    });
+
+    // ---------- Barcode decoding (native first, ZXing fallback) ----------
+    let barcodeDetector = null, zxingReader = null, zxingScriptLoaded = false;
+
+    async function ensureBarcodeDetector(){
+      if ('BarcodeDetector' in window) {
+        try {
+          barcodeDetector = new window.BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf','qr_code'] });
+          return true;
+        } catch { barcodeDetector = null; }
+      }
+      return false;
     }
 
-    // ---------- HID typing (proof of wiring) ----------
-    const hidInput = $('#hidInput');
-    const hidAuto = $('#hidAuto');
-    const btnClearHid = $('#btnClearHid');
-    const typeStatus = $('#typeStatus');
-    const hidEcho = $('#hidEcho');
-    let typeTimer=null; const DONE_GAP_MS=120;
-
-    function doneTyping(){
-      const text=(hidInput.value||'').trim();
-      if(!text) return;
-      if(typeStatus) typeStatus.textContent='Read complete';
-      if(hidEcho) hidEcho.textContent = text;
-      hidInput.select();
+    function loadZxingScript(){
+      return new Promise((resolve, reject) => {
+        if (zxingScriptLoaded) return resolve();
+        const s = document.createElement('script');
+        // Working UMD with correct MIME type
+        s.src = 'https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js';
+        s.onload = () => { zxingScriptLoaded = true; resolve(); };
+        s.onerror = () => reject(new Error('Failed to load ZXing library'));
+        document.head.appendChild(s);
+      });
     }
-    hidInput.addEventListener('keydown', (e)=> {
-      if(typeStatus) typeStatus.textContent='⌨️ Key press detected';
-      if(e.key==='Enter' || e.key==='Tab'){ e.preventDefault(); doneTyping(); }
-    });
-    hidInput.addEventListener('input', ()=> {
-      if(typeStatus) typeStatus.textContent = '⌨️ Typing…';
-      if(hidEcho) hidEcho.textContent = hidInput.value;
-      if(!hidAuto.checked) return;
-      clearTimeout(typeTimer); typeTimer=setTimeout(doneTyping, DONE_GAP_MS);
-    });
-    btnClearHid.addEventListener('click', ()=>{ hidInput.value=''; hidInput.focus(); if(typeStatus) typeStatus.textContent=''; if(hidEcho) hidEcho.textContent='No input yet.'; });
 
-    // ---------- Buttons ----------
-    $('#btnStart').addEventListener('click', async ()=>{
-      // Ensure Camera tab is the selected one; reflect in display box
-      if (tabCamera.getAttribute('aria-selected') !== 'true') selectTab('camera');
-      await startCamera();
-    });
-    $('#btnStop').addEventListener('click', async ()=>{
-      await stopCamera();
-      showDisplayMessage('camera selected — stopped', 'camera');
-    });
-    $('#btnFlip').addEventListener('click', flipCamera);
-    $('#btnPerm').addEventListener('click', async ()=>{
-      setStatus('Requesting camera permission…');
+    async function startDecodingLoop(){
+      if (!cameraRunning || !videoEl) return;
+      if (decoding) return;
+      decoding = true;
+
+      if (await ensureBarcodeDetector()){
+        const tick = async () => {
+          if (!decoding || !cameraRunning) return;
+          try{
+            const barcodes = await barcodeDetector.detect(videoEl);
+            if (barcodes && barcodes.length){
+              const v = barcodes[0].rawValue || '';
+              if (v){
+                resultBox.value = v;
+                setStatus(`Detected (${barcodes[0].format || 'code'}) — stopping…`);
+                await stopCamera(); decoding = false; return;
+              }
+            }
+          } catch {}
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+        return;
+      }
+
       try{
-        const s = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
-        s.getTracks().forEach(t=>t.stop());
-        setStatus('Permission granted. Choose Camera → Start.');
-        await listCameras();
-        $('#btnFlip').disabled = !(cameras && cameras.length >= 2);
-      }catch(e){
-        setStatus(`<span style="color:var(--error)">Permission denied:</span> ${e.message || e}`);
+        await loadZxingScript();
+        const ZX = window.ZXing;
+        const Reader = ZX && (ZX.BrowserMultiFormatReader || ZX.MultiFormatReader);
+        const NotFound = ZX && ZX.NotFoundException;
+        if (!ZX || !Reader) throw new Error('ZXing UMD not available');
+
+        const reader = new Reader();
+        const loop = async () => {
+          if (!decoding || !cameraRunning) return;
+          try {
+            const r = await reader.decodeOnceFromVideoElement(videoEl);
+            if (r && r.text){
+              resultBox.value = r.text;
+              setStatus('Detected — stopping…');
+              await stopCamera(); decoding = false; return;
+            }
+          } catch (err) {
+            if (!(NotFound && err instanceof NotFound)) { /* keep trying */ }
+          }
+          requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
+      } catch(e){
+        setStatus(`<span style="color:var(--error)">Decoder unavailable:</span> ${e.message || e}`);
+        decoding = false;
+      }
+    }
+
+    // ---------- HID: document-level capture (bullet-proof) ----------
+    function updateHidEcho() {
+      if (typeStatus) typeStatus.textContent = hidBuffer ? '⌨️ Typing…' : '';
+      // Live echo into result so users see feedback immediately
+      resultBox.value = hidBuffer;
+    }
+    function commitHid() {
+      if (!hidBuffer) return;
+      resultBox.value = hidBuffer;
+      if (typeStatus) typeStatus.textContent = 'Read complete';
+      setStatus('HID: Read complete');
+      if (hidInput) hidInput.select();
+      hidBuffer = '';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!hidModeActive) return;
+
+      // ignore modifiers
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === 'Shift') return;
+
+      // commit keys
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        commitHid();
+        return;
+      }
+      // edits
+      if (e.key === 'Backspace') {
+        hidBuffer = hidBuffer.slice(0, -1);
+        updateHidEcho();
+        return;
+      }
+      // printable
+      if (e.key && e.key.length === 1) {
+        hidBuffer += e.key;
+        updateHidEcho();
+        if (hidAuto && hidAuto.checked) {
+          clearTimeout(hidTimer);
+          hidTimer = setTimeout(commitHid, HID_COMMIT_MS);
+        }
       }
     });
 
-    // Visible errors
-    window.addEventListener('error', (e)=>{
-      setStatus('<span style="color:var(--error)">JavaScript error:</span> ' + (e && e.message ? e.message : e));
+    // Keep the input handlers too (optional, works when focused)
+    hidInput && hidInput.addEventListener('focus', ()=> setStatus('HID: input focused — type/scan now.'));
+    hidInput && hidInput.addEventListener('keydown', (e)=> {
+      if (typeStatus) typeStatus.textContent='⌨️ Typing…';
+      if(e.key==='Enter' || e.key==='Tab'){ e.preventDefault(); commitHid(); }
+    });
+    hidInput && hidInput.addEventListener('input', ()=> {
+      if (!hidModeActive) return; // avoid double-writing if camera tab is active
+      hidBuffer = hidInput.value;
+      updateHidEcho();
+      if (hidAuto && hidAuto.checked) {
+        clearTimeout(hidTimer); hidTimer = setTimeout(commitHid, HID_COMMIT_MS);
+      }
+    });
+    btnClearHid && btnClearHid.addEventListener('click', ()=>{
+      hidBuffer = '';
+      if (hidInput){ hidInput.value=''; hidInput.focus(); }
+      if (typeStatus) typeStatus.textContent='';
+      setStatus('HID: cleared.');
+      resultBox.value = '';
     });
 
-    // Stop camera when backgrounded
-    document.addEventListener('visibilitychange', ()=>{ if(document.hidden) stopCamera(); });
+    // Background handling
+    document.addEventListener('visibilitychange', ()=>{ if(document.hidden){ decoding=false; stopCamera(); } });
   </script>
 </body>
 </html>
