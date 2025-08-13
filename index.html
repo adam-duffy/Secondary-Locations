@@ -6,44 +6,69 @@
 <meta name="theme-color" content="#111827" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>Universal Scanner — Camera & HID (No Libs)</title>
+<title>Universal Scanner — Top Display</title>
 <style>
   :root{--bg:#0b1020;--panel:#111827;--text:#e5e7eb;--muted:#9ca3af;--accent:#22d3ee;--warn:#f59e0b;--error:#ef4444;--radius:18px}
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:radial-gradient(1200px 800px at 50% -10%,#1f2937 0%,var(--bg) 60%);color:var(--text);-webkit-tap-highlight-color:transparent}
-  .container{max-width:720px;margin:0 auto;padding:16px 16px 28px}
-  header{display:flex;align-items:center;gap:12px;padding:12px 0 16px}
+  .container{max-width:720px;margin:0 auto;padding:16px 16px 28px;display:flex;flex-direction:column;gap:14px}
+
+  /* Permanent top display (~20% of portrait height) */
+  #displayBox{
+    height:20vh; min-height:140px; max-height:220px;
+    width:100%; border-radius:16px; overflow:hidden;
+    border:2px solid rgba(255,255,255,.08);
+    background:#030712; display:grid; place-items:center;
+    position:relative;
+  }
+  #displayBox .placeholder{
+    color:var(--muted); font-size:1.05rem; text-align:center; padding:0 12px;
+  }
+  #displayBox video{ width:100%; height:100%; object-fit:cover; display:block; }
+  #displayLabel{
+    position:absolute; left:10px; top:10px; padding:4px 8px; border-radius:10px;
+    background:rgba(17,24,39,.7); border:1px solid rgba(255,255,255,.12); font-size:.8rem; color:var(--text);
+    backdrop-filter: blur(6px);
+  }
+
+  header{display:flex;align-items:center;gap:12px}
   header .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#1e293b,#0ea5e9);display:grid;place-items:center;box-shadow:0 8px 24px rgba(0,0,0,.35)}
-  header h1{font-size:1.2rem;margin:0} header p{margin:2px 0 0;color:var(--muted);font-size:.95rem}
+  header h1{font-size:1.15rem;margin:0} header p{margin:2px 0 0;color:var(--muted);font-size:.95rem}
+
   .card{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(0,0,0,.15));border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:14px}
   .tabs{display:flex;gap:10px;margin-bottom:10px}
   .tab{flex:1;text-align:center;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#0f172a;color:var(--text);font-weight:600;cursor:pointer;user-select:none;outline:2px solid transparent}
   .tab[aria-selected="true"]{outline:2px solid var(--accent);background:#0b1226}
-  /* Panels hidden until a tab is chosen */
+
+  /* Panels hidden until chosen */
   #cameraPanel,#hidPanel{display:none}
   .panel-active{display:block}
+
   .controls{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 12px}
   button.primary{flex:1;min-width:140px;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0ea5e9,#22d3ee);color:#001222;font-weight:800;cursor:pointer}
   button.secondary{padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#0f172a;color:var(--text);font-weight:700;cursor:pointer}
   button:disabled{opacity:.5;cursor:not-allowed}
-  #preview{width:100%;aspect-ratio:16/10;border-radius:14px;overflow:hidden;background:#030712;border:2px solid rgba(255,255,255,.06);display:grid;place-items:center}
-  video{width:100%;height:100%;object-fit:cover;display:block}
-  #preview.flash{animation:flash .6s ease-out}
-  @keyframes flash{0%{box-shadow:0 0 0 0 rgba(34,211,238,0.9);border-color:#22d3ee}100%{box-shadow:0 0 0 12px rgba(34,211,238,0);border-color:rgba(255,255,255,.06)}}
+
   .status{font-size:.95rem;color:var(--muted);margin:6px 2px;min-height:1.2em}
   input[type="text"]{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#0f172a;color:var(--text);font-size:1.05rem}
   .code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:1.05rem;background:#0b1226;border:1px dashed rgba(255,255,255,.18);border-radius:12px;padding:10px;margin-top:8px}
-  footer{margin-top:22px;color:var(--muted);font-size:.85rem;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
-  .hint{font-size:.95rem;color:var(--muted);margin:8px 0}
+  footer{margin-top:4px;color:var(--muted);font-size:.85rem;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 </style>
 </head>
 <body>
   <div class="container">
+    <!-- Permanent top display -->
+    <div id="displayBox" aria-live="polite">
+      <div id="displayLabel">no input</div>
+      <div class="placeholder" id="displayPlaceholder">select an input</div>
+      <!-- <video> inserted here when camera runs -->
+    </div>
+
     <header>
-      <div class="logo" aria-hidden="true">📷</div>
+      <div class="logo" aria-hidden="true">🎛️</div>
       <div>
         <h1>Universal Scanner — Camera & HID</h1>
-        <p>Select a tab to begin.</p>
+        <p>Select a tab below. Live view appears above.</p>
       </div>
     </header>
 
@@ -55,14 +80,13 @@
 
       <!-- CAMERA -->
       <section id="cameraPanel" role="tabpanel" aria-labelledby="tab-camera">
-        <div id="preview" aria-label="Live camera preview"><div class="hint">Camera preview will appear here</div></div>
         <div class="controls">
           <button id="btnStart" class="primary">Start camera</button>
           <button id="btnPerm" class="secondary">Request permission</button>
           <button id="btnStop" class="secondary" disabled>Stop</button>
           <button id="btnFlip" class="secondary" disabled>Flip camera</button>
         </div>
-        <div class="status" id="status">Choose Camera to start.</div>
+        <div class="status" id="status">Choose Camera, then Start.</div>
       </section>
 
       <!-- HID -->
@@ -89,7 +113,10 @@
     const $ = (s)=>document.querySelector(s);
     const statusEl = $('#status');
     const capsEl = $('#capabilities');
-    const preview = $('#preview');
+    const displayBox = $('#displayBox');
+    const displayLabel = $('#displayLabel');
+    const displayPlaceholder = $('#displayPlaceholder');
+
     let videoEl = null;
     let currentStream = null;
     let cameras = [];
@@ -100,32 +127,102 @@
     capsEl.textContent = `${camCap ? '🎥 Camera API' : '🚫 No camera API'} · ${secure ? '🔒 Secure' : '⚠️ Not secure'} · ✅ JS running`;
 
     const setStatus = (msg)=>{ if(statusEl) statusEl.innerHTML = msg; };
-    const flash = ()=>{ preview.classList.remove('flash'); void preview.offsetWidth; preview.classList.add('flash'); };
 
-    // ---------- Tabs (none selected initially) ----------
+    // ---------- Top display helpers ----------
+    function clearDisplayToMessage(msg, label='no input'){
+      // Remove any video and show a placeholder message
+      const existingVideo = displayBox.querySelector('video');
+      if (existingVideo) existingVideo.remove();
+      displayPlaceholder.textContent = msg;
+      displayPlaceholder.style.display = 'block';
+      displayLabel.textContent = label;
+    }
+
+    function showDisplayMessage(msg, label){
+      clearDisplayToMessage(msg, label);
+    }
+
+    async function showDisplayVideoWithStream(stream, label='camera'){
+      // Remove placeholder, inject/prepare video, play
+      displayPlaceholder.style.display = 'none';
+      displayLabel.textContent = label;
+
+      if (!videoEl){
+        videoEl = document.createElement('video');
+        videoEl.setAttribute('playsinline','');  // iOS inline playback
+        videoEl.setAttribute('muted','');        // attribute + property for iOS
+        videoEl.muted = true;
+        videoEl.autoplay = true;
+        videoEl.style.width = '100%';
+        videoEl.style.height = '100%';
+        videoEl.style.objectFit = 'cover';
+      } else {
+        // Remove if already attached somewhere
+        if (videoEl.parentElement) videoEl.parentElement.removeChild(videoEl);
+      }
+
+      videoEl.srcObject = stream;
+      displayBox.appendChild(videoEl);
+
+      try {
+        await videoEl.play(); // important for Safari to actually render frames
+      } catch(e) {
+        setStatus(`<span style="color:var(--warn)">Tap Start again</span> to begin video (autoplay blocked): ${e.message || e}`);
+      }
+
+      videoEl.addEventListener('loadedmetadata', ()=> setStatus('Camera streaming…'));
+      videoEl.addEventListener('canplay', ()=> setStatus('Live preview active.'));
+    }
+
+    // Initial state
+    showDisplayMessage('select an input', 'no input');
+
+    // ---------- Tabs ----------
     const tabCamera = $('#tab-camera'), tabHid = $('#tab-hid');
     const cameraPanel = $('#cameraPanel'), hidPanel = $('#hidPanel');
 
+    let cameraRunning = false;
+
     function selectTab(which){
-      const cam = which==='camera';
-      tabCamera.setAttribute('aria-selected', cam);
-      tabHid.setAttribute('aria-selected', !cam);
-      cameraPanel.classList.toggle('panel-active', cam);
-      hidPanel.classList.toggle('panel-active', !cam);
-      if (cam){
-        // Auto-start camera if not running
-        if (!currentStream) startCamera();
-      } else {
+    const cam = which==='camera';
+    const currentlySelected = tabCamera.getAttribute('aria-selected') === 'true';
+
+    if (cam){
+        // If Camera tab is already selected, toggle camera on/off
+        if (currentlySelected) {
+        if (cameraRunning) {
+            stopCamera();
+            cameraRunning = false;
+            showDisplayMessage('camera stopped', 'camera');
+        } else {
+            startCamera().then(() => cameraRunning = true);
+        }
+        return;
+        }
+
+        // Camera tab wasn't selected before → select it and start camera
+        tabCamera.setAttribute('aria-selected', true);
+        tabHid.setAttribute('aria-selected', false);
+        cameraPanel.classList.add('panel-active');
+        hidPanel.classList.remove('panel-active');
+        startCamera().then(() => cameraRunning = true);
+
+    } else {
+        // HID tab selected
+        tabCamera.setAttribute('aria-selected', false);
+        tabHid.setAttribute('aria-selected', true);
+        cameraPanel.classList.remove('panel-active');
+        hidPanel.classList.add('panel-active');
         stopCamera();
+        cameraRunning = false;
+        showDisplayMessage('barcode scanner selected', 'barcode');
         const inp = $('#hidInput'); if (inp) inp.focus();
         const ts = $('#typeStatus'); if (ts) ts.textContent = 'Ready — scan now';
-      }
+    }
     }
 
     tabCamera.addEventListener('click', ()=> selectTab('camera'));
     tabHid.addEventListener('click', ()=> selectTab('hid'));
-
-    // Panels are hidden by default until a tab is chosen.
 
     // ---------- Camera (no libs) ----------
     async function listCameras(){
@@ -136,45 +233,7 @@
       } catch { cameras = []; }
     }
 
-    function ensureVideoEl(){
-      if (videoEl) return videoEl;
-      videoEl = document.createElement('video');
-      videoEl.setAttribute('playsinline',''); // iOS inline
-      videoEl.muted = true;                  // allow autoplay without gesture
-      videoEl.autoplay = true;
-      videoEl.style.width = '100%';
-      videoEl.style.height = '100%';
-      videoEl.style.objectFit = 'cover';
-      return videoEl;
-    }
-
-    async function attachStream(stream){
-      // Clear any prior stream/UI
-      stopCamera();
-      currentStream = stream;
-
-      const v = ensureVideoEl();
-      v.srcObject = stream;
-
-      // Put video into the preview container BEFORE play()
-      preview.innerHTML = '';
-      preview.appendChild(v);
-
-      // Try to start rendering
-      try {
-        await v.play(); // critical for Safari/iOS
-      } catch(e) {
-        // If autoplay prevented, prompt user interaction
-        setStatus(`<span style="color:var(--warn)">Tap Start again</span> to begin video (autoplay blocked): ${e.message || e}`);
-      }
-
-      // Update when we can render frames
-      v.addEventListener('loadedmetadata', ()=> setStatus('Camera streaming…'));
-      v.addEventListener('canplay', ()=> setStatus('Live preview active.'));
-    }
-
     async function startCamera(){
-      flash();
       setStatus('Start clicked ✓ — requesting camera…');
       $('#btnStart').disabled = true; $('#btnStart').textContent = 'Starting…';
 
@@ -182,43 +241,49 @@
       if (!secure){ setStatus('<span style="color:#f59e0b">Tip:</span> Use HTTPS or localhost — many browsers block camera on HTTP.'); }
 
       try {
-        // Prefer rear camera; desktop may ignore facingMode
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio:false });
         await attachStream(stream);
-        setStatus('Camera running — live preview above.');
         $('#btnStop').disabled = false;
 
         await listCameras();
         $('#btnFlip').disabled = !(cameras && cameras.length >= 2);
       } catch (e){
-        setStatus(`<span style="color:#ef4444">Camera error:</span> ${e.message || e}`);
+        setStatus(`<span style="color:var(--error)">Camera error:</span> ${e.message || e}`);
         $('#btnStart').disabled=false; $('#btnStart').textContent='Start camera';
       }
     }
 
-    async function stopCamera(){
+    async function attachStream(stream){
+      // Stop any previous
       try { if (currentStream) currentStream.getTracks().forEach(t=>t.stop()); } catch {}
+      currentStream = stream;
+      await showDisplayVideoWithStream(stream, 'camera');
+      setStatus('Camera running — live preview above.');
+    }
+
+    async function stopCamera(){
+      try{ if (currentStream){ currentStream.getTracks().forEach(t=>t.stop()); } }catch{}
       currentStream = null;
       if (videoEl) { try { videoEl.pause(); } catch {} }
       $('#btnStart').disabled = false; $('#btnStart').textContent = 'Start camera';
       $('#btnStop').disabled = true;
-      // keep Flip state as-is
+      // do not change top display here; caller decides message
     }
 
     async function flipCamera(){
       if (!cameras || cameras.length < 2) return;
-      try {
+      try{
         camIndex = (camIndex + 1) % cameras.length;
         const deviceId = cameras[camIndex].deviceId;
         const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } }, audio:false });
         await attachStream(stream);
         setStatus(`Switched camera (${cameras[camIndex].label || 'camera ' + (camIndex+1)})`);
-      } catch (e){
-        setStatus(`<span style="color:#ef4444">Flip failed:</span> ${e.message || e}`);
+      }catch(e){
+        setStatus(`<span style="color:var(--error)">Flip failed:</span> ${e.message || e}`);
       }
     }
 
-    // ---------- HID typing ----------
+    // ---------- HID typing (proof of wiring) ----------
     const hidInput = $('#hidInput');
     const hidAuto = $('#hidAuto');
     const btnClearHid = $('#btnClearHid');
@@ -246,8 +311,15 @@
     btnClearHid.addEventListener('click', ()=>{ hidInput.value=''; hidInput.focus(); if(typeStatus) typeStatus.textContent=''; if(hidEcho) hidEcho.textContent='No input yet.'; });
 
     // ---------- Buttons ----------
-    $('#btnStart').addEventListener('click', startCamera);
-    $('#btnStop').addEventListener('click', stopCamera);
+    $('#btnStart').addEventListener('click', async ()=>{
+      // Ensure Camera tab is the selected one; reflect in display box
+      if (tabCamera.getAttribute('aria-selected') !== 'true') selectTab('camera');
+      await startCamera();
+    });
+    $('#btnStop').addEventListener('click', async ()=>{
+      await stopCamera();
+      showDisplayMessage('camera selected — stopped', 'camera');
+    });
     $('#btnFlip').addEventListener('click', flipCamera);
     $('#btnPerm').addEventListener('click', async ()=>{
       setStatus('Requesting camera permission…');
@@ -258,13 +330,13 @@
         await listCameras();
         $('#btnFlip').disabled = !(cameras && cameras.length >= 2);
       }catch(e){
-        setStatus(`<span style="color:#ef4444">Permission denied:</span> ${e.message || e}`);
+        setStatus(`<span style="color:var(--error)">Permission denied:</span> ${e.message || e}`);
       }
     });
 
-    // Visible errors (so we never get “nothing happens”)
+    // Visible errors
     window.addEventListener('error', (e)=>{
-      setStatus('<span style="color:#ef4444">JavaScript error:</span> ' + (e && e.message ? e.message : e));
+      setStatus('<span style="color:var(--error)">JavaScript error:</span> ' + (e && e.message ? e.message : e));
     });
 
     // Stop camera when backgrounded
