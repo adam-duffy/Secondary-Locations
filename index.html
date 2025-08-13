@@ -7,27 +7,24 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <title>Universal Scanner — Camera & HID</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%93%8B%3C/text%3E%3C/svg%3E">
 <style>
-  :root{--bg:#0b1020;--panel:#111827;--text:#e5e7eb;--muted:#9ca3af;--accent:#22d3ee;--warn:#f59e0b;--error:#ef4444;--radius:18px}
+  :root{--bg:#0b1020;--panel:#111827;--text:#e5e7eb;--muted:#9ca3af;--accent:#22d3ee;--radius:18px}
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:radial-gradient(1200px 800px at 50% -10%,#1f2937 0%,var(--bg) 60%);color:var(--text);-webkit-tap-highlight-color:transparent}
   .container{max-width:720px;margin:0 auto;padding:16px 16px 24px;display:flex;flex-direction:column;gap:14px}
 
-  /* Permanent top display (~20% of portrait height) */
+  /* Top display (camera preview) */
   #displayBox{
-    height:20vh; min-height:140px; max-height:220px;
-    width:100%; border-radius:16px; overflow:hidden;
-    border:2px solid rgba(255,255,255,.08);
-    background:#030712; display:grid; place-items:center;
-    position:relative;
+    height:20vh;min-height:140px;max-height:220px;width:100%;
+    border-radius:16px;overflow:hidden;border:2px solid rgba(255,255,255,.08);
+    background:#030712;display:grid;place-items:center;position:relative
   }
-  #displayBox .placeholder{ color:var(--muted); font-size:1.05rem; text-align:center; padding:0 12px; }
-  #displayBox video{ width:100%; height:100%; object-fit:cover; display:block; }
+  #displayBox .placeholder{color:var(--muted);font-size:1.05rem;text-align:center;padding:0 12px}
+  #displayBox video{width:100%;height:100%;object-fit:cover;display:block}
   #displayLabel{
-    position:absolute; left:10px; top:10px; padding:4px 8px; border-radius:10px;
-    background:rgba(17,24,39,.7); border:1px solid rgba(255,255,255,.12); font-size:.8rem; color:var(--text);
-    backdrop-filter: blur(6px);
+    position:absolute;left:10px;top:10px;padding:4px 8px;border-radius:10px;
+    background:rgba(17,24,39,.7);border:1px solid rgba(255,255,255,.12);
+    font-size:.8rem;color:var(--text);backdrop-filter:blur(6px)
   }
 
   header{display:flex;align-items:center;gap:12px}
@@ -40,25 +37,25 @@
   .tab{flex:1;text-align:center;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#0f172a;color:var(--text);font-weight:600;cursor:pointer;user-select:none;outline:2px solid transparent}
   .tab[aria-selected="true"]{outline:2px solid var(--accent);background:#0b1226}
 
-  /* GLOBAL status (always visible) */
-  #globalStatus{margin:0 2px 10px;color:var(--muted);font-size:.95rem;min-height:1.2em}
+  /* Global status + global result */
+  #globalStatus{margin:0 2px;color:var(--muted);font-size:.95rem;min-height:1.2em}
+  .row{display:flex;gap:10px;align-items:center;margin:6px 0 12px}
+  .row .label{min-width:120px;flex:0 0 auto;color:var(--muted);font-size:.95rem}
+  .row input[type="text"]{flex:1;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:#0f172a;color:var(--text);font-size:1.05rem}
 
-  /* Panels hidden until chosen */
-  #cameraPanel,#hidPanel{display:none}
-  .panel-active{display:block}
+  /* Panels */
+  #cameraPanel,#hidPanel{display:none}.panel-active{display:block}
 
-  .controls{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 10px}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
   button.secondary{padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#0f172a;color:var(--text);font-weight:700;cursor:pointer}
   button:disabled{opacity:.5;cursor:not-allowed}
-
   .status{font-size:.9rem;color:var(--muted);margin:6px 2px;min-height:1.1em}
-  input[type="text"]{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#0f172a;color:var(--text);font-size:1.05rem}
-  .row{display:flex;gap:10px;align-items:center;margin:10px 0}.row>*{flex:1}.label{min-width:120px;flex:0 0 auto;color:var(--muted);font-size:.95rem}
+  input[type="text"]{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:#0f172a;color:var(--text)}
 </style>
 </head>
 <body>
   <div class="container">
-    <!-- Top display -->
+    <!-- Camera preview box (hidden in HID mode) -->
     <div id="displayBox" aria-live="polite">
       <div id="displayLabel">no input</div>
       <div class="placeholder" id="displayPlaceholder">select an input</div>
@@ -69,7 +66,7 @@
       <div class="logo" aria-hidden="true">🎛️</div>
       <div>
         <h1>Universal Scanner — Camera & HID</h1>
-        <p>Select a tab below. Live view appears above.</p>
+        <p>Use Camera or a connected barcode scanner. Live view appears above in camera mode.</p>
       </div>
     </header>
 
@@ -79,13 +76,10 @@
         <div class="tab" id="tab-hid" role="tab" aria-selected="false" aria-controls="hidPanel">Barcode Scanner (HID)</div>
       </div>
 
-      <!-- GLOBAL status bar -->
       <div id="globalStatus">Select an input.</div>
-
-      <!-- GLOBAL result for both modes -->
       <div class="row">
         <div class="label">Scan result</div>
-        <input id="resultBox" type="text" placeholder="Scan a barcode (camera or HID)..." readonly />
+        <input id="resultBox" type="text" placeholder="Waiting for a scan…" readonly />
       </div>
 
       <!-- CAMERA -->
@@ -99,333 +93,195 @@
 
       <!-- HID -->
       <section id="hidPanel" role="tabpanel" aria-labelledby="tab-hid">
-        <p class="status">HID mode: type or scan — no need to click the field.</p>
+        <div class="status">HID mode: type or scan — field focus not required.</div>
         <input id="hidInput" type="text" autocomplete="off" spellcheck="false" placeholder="(Optional) click here, then scan…" />
         <div class="controls">
           <button id="btnClearHid" class="secondary">Clear</button>
-          <label class="status"><input type="checkbox" id="hidAuto" checked /> Auto-detect when typing stops</label>
+          <label class="status"><input type="checkbox" id="hidAuto" checked /> Auto-detect pause</label>
         </div>
         <div class="status" id="typeStatus"></div>
       </section>
     </div>
   </div>
 
-  <script>
-    // ---------- Shorthands ----------
-    const $ = (s)=>document.querySelector(s);
+  <!-- Self-hosted ZXing (keep this file next to index.html) -->
+  <script src="./zxing.min.js" defer></script>
 
-    // Elements
-    const globalStatus = $('#globalStatus');
-    const statusEl = $('#status'); // camera-panel local status
+  <script>
+    const $ = s => document.querySelector(s);
+
+    // UI elements
     const displayBox = $('#displayBox');
     const displayLabel = $('#displayLabel');
     const displayPlaceholder = $('#displayPlaceholder');
+    const globalStatus = $('#globalStatus');
     const resultBox = $('#resultBox');
+    const statusEl = $('#status');
+
     const tabCamera = $('#tab-camera'), tabHid = $('#tab-hid');
     const cameraPanel = $('#cameraPanel'), hidPanel = $('#hidPanel');
     const btnPerm = $('#btnPerm'), btnFlip = $('#btnFlip');
 
-    // HID elements
-    const hidInput = $('#hidInput');
-    const hidAuto  = $('#hidAuto');
-    const btnClearHid = $('#btnClearHid');
-    const typeStatus = $('#typeStatus');
+    const hidInput = $('#hidInput'), hidAuto = $('#hidAuto'), btnClearHid = $('#btnClearHid'), typeStatus = $('#typeStatus');
 
-    // ---------- Status helpers (global + camera panel) ----------
-    function setStatus(msg){
-      if (globalStatus) globalStatus.innerHTML = msg;
-      if (statusEl && cameraPanel.classList.contains('panel-active')) statusEl.innerHTML = msg;
-    }
+    // Helpers
+    const setStatus = (msg)=>{ globalStatus.innerHTML = msg; if (cameraPanel.classList.contains('panel-active')) statusEl.innerHTML = msg; };
+    const showDisplayBox = (show)=>{ displayBox.style.display = show ? 'grid' : 'none'; };
 
-    // ---------- Top display + camera state ----------
-    let videoEl = null, currentStream = null, cameras = [], camIndex = -1, cameraRunning = false, decoding = false;
+    // Camera state
+    let videoEl=null, currentStream=null, cameras=[], camIndex=-1, cameraRunning=false, decoding=false;
 
-    function showDisplayMessage(msg, label='no input'){
-      const existingVideo = displayBox.querySelector('video');
-      if (existingVideo) existingVideo.remove();
-      displayPlaceholder.textContent = msg;
-      displayPlaceholder.style.display = 'block';
+    function showMessage(msg, label='no input'){
+      const v = displayBox.querySelector('video'); if (v) v.remove();
+      displayPlaceholder.textContent = msg; displayPlaceholder.style.display = 'block';
       displayLabel.textContent = label;
     }
-    async function showDisplayVideoWithStream(stream, label='camera'){
-      displayPlaceholder.style.display = 'none';
-      displayLabel.textContent = label;
-      if (!videoEl){
-        videoEl = document.createElement('video');
-        videoEl.setAttribute('playsinline','');
-        videoEl.setAttribute('muted','');
-        videoEl.muted = true;
-        videoEl.autoplay = true;
-        videoEl.style.width = '100%';
-        videoEl.style.height = '100%';
-        videoEl.style.objectFit = 'cover';
-      } else if (videoEl.parentElement) {
-        videoEl.parentElement.removeChild(videoEl);
-      }
-      videoEl.srcObject = stream;
-      displayBox.appendChild(videoEl);
-      try { await videoEl.play(); } catch(e){ setStatus(`Tap Camera again if video didn't start: ${e.message||e}`); }
+    async function showVideo(stream, label='camera'){
+      displayPlaceholder.style.display = 'none'; displayLabel.textContent = label;
+      if (!videoEl){ videoEl = document.createElement('video'); videoEl.setAttribute('playsinline',''); videoEl.muted=true; videoEl.autoplay=true; videoEl.style.width='100%'; videoEl.style.height='100%'; videoEl.style.objectFit='cover'; }
+      else if (videoEl.parentElement){ videoEl.parentElement.removeChild(videoEl); }
+      videoEl.srcObject = stream; displayBox.appendChild(videoEl);
+      try { await videoEl.play(); } catch(e){ setStatus(`Tap Camera again if video didn't start: ${e.message}`); }
     }
 
-    // Initial UI
-    showDisplayMessage('select an input', 'no input');
-    setStatus('Select an input.');
+    // Init
+    showMessage('select an input','no input'); setStatus('Select an input.');
 
-    // ---------- Tabs (Camera toggles, HID activates capture) ----------
-    function setTabSelection(cameraSelected){
+    function setTabs(cameraSelected){
       tabCamera.setAttribute('aria-selected', cameraSelected);
       tabHid.setAttribute('aria-selected', !cameraSelected);
       cameraPanel.classList.toggle('panel-active', cameraSelected);
       hidPanel.classList.toggle('panel-active', !cameraSelected);
     }
 
-    // HID capture state (works even if input isn't focused)
-    let hidModeActive = false;
-    let hidBuffer = '';
-    let hidTimer = null;
-    const HID_COMMIT_MS = 120;
+    // HID robust capture (works even without focus)
+    let hidModeActive=false, hidBuffer='', hidTimer=null; const HID_COMMIT_MS=120;
+    function updateHidEcho(buf){ typeStatus.textContent = buf ? '⌨️ Typing…' : ''; resultBox.value = buf; }
+    function commitHid(buf){ if(!buf) return; resultBox.value = buf; typeStatus.textContent='Read complete'; setStatus('HID: Read complete'); hidInput && hidInput.select(); }
+    document.addEventListener('keydown', (e)=>{
+      if(!hidModeActive) return;
+      if(e.ctrlKey || e.metaKey || e.altKey || e.key==='Shift') return;
+      if(e.key==='Enter' || e.key==='Tab'){ e.preventDefault(); const buf=hidBuffer; hidBuffer=''; commitHid(buf); return; }
+      if(e.key==='Backspace'){ hidBuffer = hidBuffer.slice(0,-1); updateHidEcho(hidBuffer); return; }
+      if(e.key.length===1){ hidBuffer += e.key; updateHidEcho(hidBuffer); if(hidAuto && hidAuto.checked){ clearTimeout(hidTimer); hidTimer=setTimeout(()=>{ const b=hidBuffer; hidBuffer=''; commitHid(b); }, HID_COMMIT_MS); } }
+    });
+    hidInput && hidInput.addEventListener('input', ()=>{
+      if(!hidModeActive) return;
+      hidBuffer = hidInput.value; updateHidEcho(hidBuffer);
+      if(hidAuto && hidAuto.checked){ clearTimeout(hidTimer); hidTimer=setTimeout(()=>{ const b=hidBuffer; hidBuffer=''; commitHid(b); }, HID_COMMIT_MS); }
+    });
+    btnClearHid && btnClearHid.addEventListener('click', ()=>{ hidBuffer=''; hidInput.value=''; resultBox.value=''; typeStatus.textContent=''; setStatus('HID: cleared.'); });
 
+    // Tabs
     tabCamera.addEventListener('click', async ()=>{
-      const alreadySelected = tabCamera.getAttribute('aria-selected') === 'true';
-      hidModeActive = false; // disable HID capture in camera mode
-      if (alreadySelected){
-        if (cameraRunning){ await stopCamera(); showDisplayMessage('camera stopped', 'camera'); setStatus('Camera stopped.'); }
+      const already = tabCamera.getAttribute('aria-selected')==='true';
+      hidModeActive = false; showDisplayBox(true);
+      if (already){
+        if (cameraRunning){ await stopCamera(); showMessage('camera stopped','camera'); setStatus('Camera stopped.'); }
         else { await startCamera(); }
         return;
       }
-      setTabSelection(true);
+      setTabs(true);
       await startCamera();
     });
-
     tabHid.addEventListener('click', ()=>{
-      setTabSelection(false);
-      stopCamera();
-      showDisplayMessage('barcode scanner selected', 'barcode');
+      stopCamera(); showDisplayBox(false);
+      setTabs(false);
       setStatus('HID ready — type/scan now.');
-      hidModeActive = true;
-      hidBuffer = '';
-      if (typeStatus) typeStatus.textContent = '';
-      if (hidInput) hidInput.value = '';
-      if (hidInput) hidInput.focus();
+      hidModeActive = true; hidBuffer=''; typeStatus.textContent=''; hidInput.value=''; hidInput.focus();
     });
 
-    // ---------- Camera core (kept ready for next testing) ----------
+    // Camera plumbing
     async function listCameras(){
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        cameras = devices.filter(d=>d.kind==='videoinput');
-        if (camIndex < 0 && cameras.length) camIndex = 0;
-      } catch { cameras = []; }
+      try { const devices = await navigator.mediaDevices.enumerateDevices(); cameras = devices.filter(d=>d.kind==='videoinput'); if (camIndex<0 && cameras.length) camIndex=0; } catch { cameras=[]; }
     }
-
     async function startCamera(){
       setStatus('Requesting camera…');
-      try {
-        // Warm-up permission helps Safari
-        const warm = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio:false });
-        warm.getTracks().forEach(t=>t.stop());
-
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio:false });
-        await attachStream(stream);
-        await listCameras();
-        if (btnFlip) btnFlip.disabled = !(cameras && cameras.length >= 2);
-        cameraRunning = true;
-        startDecodingLoop(); // decoder is wired, but HID is the focus right now
-      } catch (e){
-        setStatus(`<span style="color:var(--error)">Camera error:</span> ${e.message || e}`);
-        cameraRunning = false;
-      }
+      try{
+        const constraints = { video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 } }, audio:false };
+        const warm = await navigator.mediaDevices.getUserMedia(constraints); warm.getTracks().forEach(t=>t.stop());
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        await attachStream(stream); await listCameras(); btnFlip && (btnFlip.disabled = !(cameras && cameras.length>=2));
+        cameraRunning=true; startDecodingLoop();
+      }catch(e){ setStatus(`<span style="color:#ef4444">Camera error:</span> ${e.message||e}`); cameraRunning=false; }
     }
-
     async function attachStream(stream){
-      try { if (currentStream) currentStream.getTracks().forEach(t=>t.stop()); } catch {}
-      currentStream = stream;
-      await showDisplayVideoWithStream(stream, 'camera');
-      setStatus('Camera running — point at a barcode.');
+      try{ if(currentStream) currentStream.getTracks().forEach(t=>t.stop()); }catch{}
+      currentStream=stream; await showVideo(stream,'camera'); setStatus('Camera running — align the barcode.');
     }
-
     async function stopCamera(){
-      try{ if (currentStream){ currentStream.getTracks().forEach(t=>t.stop()); } }catch{}
-      currentStream = null;
-      if (videoEl) { try { videoEl.pause(); } catch {} }
-      cameraRunning = false;
-      decoding = false;
+      try{ if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); } }catch{}
+      currentStream=null; if(videoEl){ try{ videoEl.pause(); }catch{} if(videoEl.parentElement) videoEl.parentElement.removeChild(videoEl); }
+      cameraRunning=false; decoding=false;
     }
-
     btnPerm && btnPerm.addEventListener('click', async ()=>{
       setStatus('Requesting camera permission…');
-      try{
-        const s = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
-        s.getTracks().forEach(t=>t.stop());
-        setStatus('Permission granted. Choose Camera.');
-        await listCameras();
-        if (btnFlip) btnFlip.disabled = !(cameras && cameras.length >= 2);
-      }catch(e){
-        setStatus(`<span style="color:var(--error)">Permission denied:</span> ${e.message || e}`);
-      }
+      try{ const s=await navigator.mediaDevices.getUserMedia({video:true,audio:false}); s.getTracks().forEach(t=>t.stop()); await listCameras(); btnFlip && (btnFlip.disabled=!(cameras&&cameras.length>=2)); setStatus('Permission granted. Choose Camera.'); }
+      catch(e){ setStatus(`<span style="color:#ef4444">Permission denied:</span> ${e.message||e}`); }
     });
-
     btnFlip && btnFlip.addEventListener('click', async ()=>{
-      if (!cameras || cameras.length < 2) return;
-      try{
-        camIndex = (camIndex + 1) % cameras.length;
-        const deviceId = cameras[camIndex].deviceId;
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } }, audio:false });
-        await attachStream(stream);
-        startDecodingLoop();
-        setStatus(`Switched camera (${cameras[camIndex].label || 'camera ' + (camIndex+1)})`);
-      }catch(e){
-        setStatus(`<span style="color:var(--error)">Flip failed:</span> ${e.message || e}`);
-      }
+      if(!cameras || cameras.length<2) return;
+      try{ camIndex=(camIndex+1)%cameras.length; const id=cameras[camIndex].deviceId; const s=await navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:id}},audio:false}); await attachStream(s); startDecodingLoop(); setStatus(`Switched camera (${cameras[camIndex].label||('camera '+(camIndex+1))})`); }
+      catch(e){ setStatus(`<span style="color:#ef4444">Flip failed:</span> ${e.message||e}`); }
     });
 
-    // ---------- Barcode decoding (native first, ZXing fallback) ----------
-    let barcodeDetector = null, zxingReader = null, zxingScriptLoaded = false;
-
+    // Camera decoding (native first; ZXing core fallback with decodeWithState)
+    let barcodeDetector=null, zxReader=null, zxHints=null;
+    const SCAN_MS=150;
+    async function waitForVideoReady(){
+      const start=performance.now();
+      while(cameraRunning && videoEl && (videoEl.videoWidth<2 || videoEl.videoHeight<2)){ await new Promise(r=>setTimeout(r,30)); if(performance.now()-start>3000) break; }
+    }
     async function ensureBarcodeDetector(){
-      if ('BarcodeDetector' in window) {
-        try {
-          barcodeDetector = new window.BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf','qr_code'] });
-          return true;
-        } catch { barcodeDetector = null; }
+      if('BarcodeDetector' in window){
+        try{ barcodeDetector = new window.BarcodeDetector({ formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf','qr_code'] }); return true; }
+        catch{ barcodeDetector=null; }
       }
       return false;
     }
-
-    function loadZxingScript(){
-      return new Promise((resolve, reject) => {
-        if (zxingScriptLoaded) return resolve();
-        const s = document.createElement('script');
-        // Working UMD with correct MIME type
-        s.src = 'https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js';
-        s.onload = () => { zxingScriptLoaded = true; resolve(); };
-        s.onerror = () => reject(new Error('Failed to load ZXing library'));
-        document.head.appendChild(s);
-      });
+    function ensureZxing(){
+      const ZX=window.ZXing; if(!ZX) return false;
+      if(!zxHints){ const H=ZX.DecodeHintType,F=ZX.BarcodeFormat; zxHints=new Map(); zxHints.set(H.TRY_HARDER,true); zxHints.set(H.POSSIBLE_FORMATS,[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39,F.ITF,F.QR_CODE]); }
+      if(!zxReader){ zxReader=new ZX.MultiFormatReader(); zxReader.setHints && zxReader.setHints(zxHints); }
+      return true;
     }
-
-    async function startDecodingLoop(){
-      if (!cameraRunning || !videoEl) return;
-      if (decoding) return;
-      decoding = true;
-
-      if (await ensureBarcodeDetector()){
-        const tick = async () => {
-          if (!decoding || !cameraRunning) return;
-          try{
-            const barcodes = await barcodeDetector.detect(videoEl);
-            if (barcodes && barcodes.length){
-              const v = barcodes[0].rawValue || '';
-              if (v){
-                resultBox.value = v;
-                setStatus(`Detected (${barcodes[0].format || 'code'}) — stopping…`);
-                await stopCamera(); decoding = false; return;
-              }
-            }
-          } catch {}
-          requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-        return;
-      }
-
+    const scanCanvas=document.createElement('canvas'); const scanCtx=scanCanvas.getContext('2d',{willReadFrequently:true});
+    function tryZX(x,y,w,h){
+      const ZX=window.ZXing; if(!ensureZxing()||!videoEl||w<2||h<2) return null;
+      scanCanvas.width=w; scanCanvas.height=h; scanCtx.drawImage(videoEl,x,y,w,h,0,0,w,h);
+      const img=scanCtx.getImageData(0,0,w,h);
       try{
-        await loadZxingScript();
-        const ZX = window.ZXing;
-        const Reader = ZX && (ZX.BrowserMultiFormatReader || ZX.MultiFormatReader);
-        const NotFound = ZX && ZX.NotFoundException;
-        if (!ZX || !Reader) throw new Error('ZXing UMD not available');
+        const lum=new ZX.RGBLuminanceSource(img.data,w,h);
+        const bmp=new ZX.BinaryBitmap(new ZX.HybridBinarizer(lum));
+        const res=zxReader.decodeWithState(bmp); const text=res && (res.getText?res.getText():res.text);
+        return text||null;
+      }catch{ return null; } finally{ zxReader.reset && zxReader.reset(); }
+    }
+    async function startDecodingLoop(){
+      if(!cameraRunning||!videoEl||decoding) return; decoding=true; await waitForVideoReady();
+      let lastBeat=0;
 
-        const reader = new Reader();
-        const loop = async () => {
-          if (!decoding || !cameraRunning) return;
-          try {
-            const r = await reader.decodeOnceFromVideoElement(videoEl);
-            if (r && r.text){
-              resultBox.value = r.text;
-              setStatus('Detected — stopping…');
-              await stopCamera(); decoding = false; return;
-            }
-          } catch (err) {
-            if (!(NotFound && err instanceof NotFound)) { /* keep trying */ }
-          }
-          requestAnimationFrame(loop);
-        };
-        requestAnimationFrame(loop);
-      } catch(e){
-        setStatus(`<span style="color:var(--error)">Decoder unavailable:</span> ${e.message || e}`);
-        decoding = false;
+      if(await ensureBarcodeDetector()){
+        const tick=async()=>{ if(!decoding||!cameraRunning) return;
+          try{ const res=await barcodeDetector.detect(videoEl); if(res&&res.length){ const v=res[0].rawValue||''; if(v){ resultBox.value=v; setStatus(`Detected (${res[0].format||'code'}) — stopping…`); await stopCamera(); decoding=false; return; } } }catch{}
+          const now=performance.now(); if(now-lastBeat>1500){ setStatus('Scanning…'); lastBeat=now; }
+          setTimeout(tick,SCAN_MS);
+        }; setTimeout(tick,SCAN_MS); return;
       }
+
+      if(!ensureZxing()){ setStatus(`<span style="color:#ef4444">Decoder unavailable:</span> ZXing not found. Ensure zxing.min.js is present.`); decoding=false; return; }
+
+      const tickZX=()=>{ if(!decoding||!cameraRunning) return;
+        const vw=videoEl.videoWidth||1280, vh=videoEl.videoHeight||720;
+        const cw=Math.round(vw*0.86), ch=Math.round(vh*0.34), cx=Math.round((vw-cw)/2), cy=Math.round((vh-ch)/2);
+        let text=tryZX(cx,cy,cw,ch); if(!text) text=tryZX(0,0,vw,vh);
+        if(text){ resultBox.value=text; setStatus('Detected — stopping…'); stopCamera().then(()=>{decoding=false;}); return; }
+        const now=performance.now(); if(now-lastBeat>1500){ setStatus('Scanning…'); lastBeat=now; }
+        setTimeout(tickZX,SCAN_MS);
+      }; setTimeout(tickZX,SCAN_MS);
     }
 
-    // ---------- HID: document-level capture (bullet-proof) ----------
-    function updateHidEcho() {
-      if (typeStatus) typeStatus.textContent = hidBuffer ? '⌨️ Typing…' : '';
-      // Live echo into result so users see feedback immediately
-      resultBox.value = hidBuffer;
-    }
-    function commitHid() {
-      if (!hidBuffer) return;
-      resultBox.value = hidBuffer;
-      if (typeStatus) typeStatus.textContent = 'Read complete';
-      setStatus('HID: Read complete');
-      if (hidInput) hidInput.select();
-      hidBuffer = '';
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if (!hidModeActive) return;
-
-      // ignore modifiers
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === 'Shift') return;
-
-      // commit keys
-      if (e.key === 'Enter' || e.key === 'Tab') {
-        e.preventDefault();
-        commitHid();
-        return;
-      }
-      // edits
-      if (e.key === 'Backspace') {
-        hidBuffer = hidBuffer.slice(0, -1);
-        updateHidEcho();
-        return;
-      }
-      // printable
-      if (e.key && e.key.length === 1) {
-        hidBuffer += e.key;
-        updateHidEcho();
-        if (hidAuto && hidAuto.checked) {
-          clearTimeout(hidTimer);
-          hidTimer = setTimeout(commitHid, HID_COMMIT_MS);
-        }
-      }
-    });
-
-    // Keep the input handlers too (optional, works when focused)
-    hidInput && hidInput.addEventListener('focus', ()=> setStatus('HID: input focused — type/scan now.'));
-    hidInput && hidInput.addEventListener('keydown', (e)=> {
-      if (typeStatus) typeStatus.textContent='⌨️ Typing…';
-      if(e.key==='Enter' || e.key==='Tab'){ e.preventDefault(); commitHid(); }
-    });
-    hidInput && hidInput.addEventListener('input', ()=> {
-      if (!hidModeActive) return; // avoid double-writing if camera tab is active
-      hidBuffer = hidInput.value;
-      updateHidEcho();
-      if (hidAuto && hidAuto.checked) {
-        clearTimeout(hidTimer); hidTimer = setTimeout(commitHid, HID_COMMIT_MS);
-      }
-    });
-    btnClearHid && btnClearHid.addEventListener('click', ()=>{
-      hidBuffer = '';
-      if (hidInput){ hidInput.value=''; hidInput.focus(); }
-      if (typeStatus) typeStatus.textContent='';
-      setStatus('HID: cleared.');
-      resultBox.value = '';
-    });
-
-    // Background handling
+    // Background pause
     document.addEventListener('visibilitychange', ()=>{ if(document.hidden){ decoding=false; stopCamera(); } });
   </script>
 </body>
