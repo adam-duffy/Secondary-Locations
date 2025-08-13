@@ -1,375 +1,242 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#111827" />
-  <!-- Make it feel app-like on iOS when added to Home Screen -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Universal Barcode Scanner</title>
-  <style>
-    :root {
-      --bg: #0b1020;      /* deep indigo */
-      --panel: #111827;   /* slate-900 */
-      --text: #e5e7eb;    /* gray-200 */
-      --muted: #9ca3af;   /* gray-400 */
-      --accent: #22d3ee;  /* cyan-400 */
-      --ok: #10b981;      /* emerald-500 */
-      --warn: #f59e0b;    /* amber-500 */
-      --error: #ef4444;   /* red-500 */
-      --radius: 18px;
-    }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      background: radial-gradient(1200px 800px at 50% -10%, #1f2937 0%, var(--bg) 60%);
-      color: var(--text);
-      -webkit-tap-highlight-color: transparent;
-    }
-    .container {
-      max-width: 720px; margin: 0 auto; padding: 16px 16px 28px;
-    }
-    header { display:flex; align-items:center; gap:12px; padding: 12px 0 16px; }
-    header .logo { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #1e293b, #0ea5e9); display:grid; place-items:center; box-shadow: 0 8px 24px rgba(0,0,0,.35) }
-    header h1 { font-size: 1.4rem; margin: 0; letter-spacing: .2px; }
-    header p { margin: 2px 0 0; color: var(--muted); font-size: .95rem; }
-
-    .card { background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(0,0,0,.15)); border: 1px solid rgba(255,255,255,.08); border-radius: var(--radius); box-shadow: 0 10px 30px rgba(0,0,0,.35); padding: 14px; }
-
-    .tabs { display:flex; gap:10px; margin-bottom: 10px; }
-    .tab { flex:1; text-align:center; padding: 12px; border-radius: 14px; border:1px solid rgba(255,255,255,.08); background:#0f172a; color:var(--text); font-weight:600; cursor:pointer; user-select:none; }
-    .tab[aria-selected="true"] { outline: 2px solid var(--accent); background: #0b1226; }
-
-    #cameraPanel, #hidPanel { display:none; }
-    .panel-active { display:block; }
-
-    .controls { display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 12px; }
-    button.primary { flex: 1; min-width: 140px; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,.08); background: linear-gradient(180deg, #0ea5e9 0%, #22d3ee 100%); color:#001222; font-weight:800; cursor:pointer; }
-    button.secondary { padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.1); background: #0f172a; color: var(--text); font-weight:700; cursor:pointer; }
-    button:disabled { opacity:.5; cursor:not-allowed; }
-
-    #reader { width: 100%; aspect-ratio: 16/10; border-radius: 14px; overflow: hidden; background:#030712; display:grid; place-items:center; }
-    #reader > div { width:100%; height:100%; }
-
-    .status { font-size:.95rem; color: var(--muted); margin: 6px 2px; min-height: 1.2em; }
-
-    .result { display:grid; gap:8px; margin-top: 10px; }
-    .result .badge { display:inline-flex; gap:8px; align-items:center; padding: 6px 10px; background:#0b1226; border: 1px solid rgba(255,255,255,.08); width: fit-content; border-radius: 999px; color: var(--muted); font-size: .9rem; }
-    .result .code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 1.25rem; background: #0b1226; border: 1px dashed rgba(255,255,255,.18); border-radius: 12px; padding: 12px; overflow:auto; }
-    .result .actions { display:flex; gap:10px; flex-wrap:wrap; }
-
-    .hint { color: var(--muted); font-size: .92rem; line-height: 1.35; }
-    input[type="text"], input[type="search"] {
-      width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,.08); background:#0f172a; color:var(--text); font-size: 1.1rem; letter-spacing: .5px;
-    }
-    .kbd { display:inline-block; padding:.15rem .45rem; border-radius: 6px; border:1px solid rgba(255,255,255,.15); background:#0f172a; font-family: ui-monospace, SFMono, Menlo, Consolas, monospace; font-size:.9rem; }
-
-    footer { margin-top: 22px; color: var(--muted); font-size: .85rem; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; }
-  </style>
-  <!-- Camera barcode scanning library (ZXing wrapped for the web) -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#111827" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Universal Scanner — Camera & HID (No Libs)</title>
+<style>
+  :root{--bg:#0b1020;--panel:#111827;--text:#e5e7eb;--muted:#9ca3af;--accent:#22d3ee;--warn:#f59e0b;--error:#ef4444;--radius:18px}
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:radial-gradient(1200px 800px at 50% -10%,#1f2937 0%,var(--bg) 60%);color:var(--text);-webkit-tap-highlight-color:transparent}
+  .container{max-width:720px;margin:0 auto;padding:16px 16px 28px}
+  header{display:flex;align-items:center;gap:12px;padding:12px 0 16px}
+  header .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#1e293b,#0ea5e9);display:grid;place-items:center;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  header h1{font-size:1.2rem;margin:0} header p{margin:2px 0 0;color:var(--muted);font-size:.95rem}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(0,0,0,.15));border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:14px}
+  .tabs{display:flex;gap:10px;margin-bottom:10px}
+  .tab{flex:1;text-align:center;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#0f172a;color:var(--text);font-weight:600;cursor:pointer;user-select:none}
+  .tab[aria-selected="true"]{outline:2px solid var(--accent);background:#0b1226}
+  #cameraPanel,#hidPanel{display:none}.panel-active{display:block}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 12px}
+  button.primary{flex:1;min-width:140px;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0ea5e9,#22d3ee);color:#001222;font-weight:800;cursor:pointer}
+  button.secondary{padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#0f172a;color:var(--text);font-weight:700;cursor:pointer}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  #preview{width:100%;aspect-ratio:16/10;border-radius:14px;overflow:hidden;background:#030712;border:2px solid rgba(255,255,255,.06);display:grid;place-items:center}
+  video{width:100%;height:100%;object-fit:cover}
+  #preview.flash{animation:flash .6s ease-out}
+  @keyframes flash{0%{box-shadow:0 0 0 0 rgba(34,211,238,0.9);border-color:#22d3ee}100%{box-shadow:0 0 0 12px rgba(34,211,238,0);border-color:rgba(255,255,255,.06)}}
+  .status{font-size:.95rem;color:var(--muted);margin:6px 2px;min-height:1.2em}
+  input[type="text"]{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#0f172a;color:var(--text);font-size:1.05rem}
+  .code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:1.05rem;background:#0b1226;border:1px dashed rgba(255,255,255,.18);border-radius:12px;padding:10px;margin-top:8px}
+  footer{margin-top:22px;color:var(--muted);font-size:.85rem;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+</style>
 </head>
 <body>
   <div class="container">
     <header>
-      <div class="logo" aria-hidden="true">📦</div>
+      <div class="logo" aria-hidden="true">📷</div>
       <div>
-        <h1>Universal Barcode Scanner</h1>
-        <p>Scan using the phone camera <em>or</em> a connected USB/Bluetooth barcode scanner.</p>
+        <h1>Universal Scanner — Camera & HID</h1>
+        <p>Tabs now trigger actions: Camera auto-starts; HID focuses input.</p>
       </div>
     </header>
 
-    <div class="card" role="region" aria-label="Scanner mode selector">
+    <div class="card" role="region" aria-label="Scanner">
       <div class="tabs" role="tablist">
         <div class="tab" id="tab-camera" role="tab" aria-selected="true" aria-controls="cameraPanel">Camera</div>
         <div class="tab" id="tab-hid" role="tab" aria-selected="false" aria-controls="hidPanel">Barcode Scanner (HID)</div>
       </div>
 
-      <!-- CAMERA MODE -->
       <section id="cameraPanel" class="panel-active" role="tabpanel" aria-labelledby="tab-camera">
-        <div id="reader" aria-label="Live camera preview area"></div>
+        <div id="preview" aria-label="Live camera preview"><div style="opacity:.55">Camera preview will appear here</div></div>
         <div class="controls">
           <button id="btnStart" class="primary">Start camera</button>
           <button id="btnPerm" class="secondary">Request permission</button>
           <button id="btnStop" class="secondary" disabled>Stop</button>
           <button id="btnFlip" class="secondary" disabled>Flip camera</button>
         </div>
-        <div class="status" id="status">Idle. Grant camera permission and tap <strong>Start camera</strong>.</div>
+        <div class="status" id="status">Idle. Tap <strong>Start camera</strong>.</div>
       </section>
 
-      <!-- SCANNER (HID keyboard) MODE -->
       <section id="hidPanel" role="tabpanel" aria-labelledby="tab-hid">
-        <p class="hint">Most handheld scanners act like a keyboard and “type” the barcode characters, often ending with <span class="kbd">Enter</span>. Tap the box below to focus it, then scan.</p>
+        <p class="status">HID mode: focus the box and scan/type.</p>
         <input id="hidInput" type="text" inputmode="none" autocomplete="off" spellcheck="false" placeholder="Click here, then scan…" />
         <div class="controls">
           <button id="btnClearHid" class="secondary">Clear</button>
-          <label class="hint"><input type="checkbox" id="hidAuto" checked /> Auto-detect when typing stops</label>
+          <label class="status"><input type="checkbox" id="hidAuto" checked /> Auto-detect when typing stops</label>
         </div>
+        <div class="status" id="typeStatus"></div>
+        <div class="code" id="hidEcho">No input yet.</div>
       </section>
-
-      <!-- RESULT AREA -->
-      <output id="result" aria-live="polite" class="result">
-        <span class="badge">Format: <strong id="fmt">—</strong></span>
-        <div class="code" id="code">No code scanned yet.</div>
-        <div class="actions">
-          <button id="copyBtn" class="secondary" disabled>Copy</button>
-          <button id="rescanBtn" class="secondary" disabled>Scan again</button>
-        </div>
-      </output>
     </div>
 
     <footer>
-      <div>Tip: Add to Home Screen for a full-screen app experience.</div>
+      <div>Tip: use HTTPS or localhost for camera access.</div>
       <div id="capabilities"></div>
     </footer>
   </div>
 
-  <audio id="beep" preload="auto">
-    <source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA/////wAAAAC4AUFkb2JlAAABmG1wM2NhAAABhAAAACAAABBtbXAzAAABpAAAABMAAABobXQxAAAB0AAAABMAAABsaW5nAAAB8AAAABMAAABsb2NsAAACBAAAABMAAABtZGF0AAACGAAAAA8AAAB//w==" type="audio/mp3" />
-  </audio>
-
   <script>
-    // ======= Utilities =======
-    const $ = (sel) => document.querySelector(sel);
+    // ---------- Utilities ----------
+    const $ = (s)=>document.querySelector(s);
     const statusEl = $('#status');
-    const fmtEl = $('#fmt');
-    const codeEl = $('#code');
-    const beepEl = $('#beep');
-    const copyBtn = $('#copyBtn');
-    const rescanBtn = $('#rescanBtn');
     const capsEl = $('#capabilities');
+    const preview = $('#preview');
+    const videoEl = document.createElement('video');
+    videoEl.setAttribute('playsinline',''); // iOS inline playback
+    let currentStream = null;
+    let cameras = []; // list of videoinput devices
+    let camIndex = -1;
 
-    function setStatus(msg) { statusEl && (statusEl.innerHTML = msg); }
-    function showResult(text, format = 'Unknown') {
-      fmtEl.textContent = format;
-      codeEl.textContent = text;
-      copyBtn.disabled = false;
-      rescanBtn.disabled = false;
-      try { beepEl.currentTime = 0; beepEl.play().catch(()=>{}); } catch {}
-      if (navigator.vibrate) navigator.vibrate(35);
-    }
+    const secure = (location.protocol === 'https:' || location.hostname === 'localhost');
+    const camCap = ('mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices);
+    capsEl.textContent = `${camCap ? '🎥 Camera API' : '🚫 No camera API'} · ${secure ? '🔒 Secure' : '⚠️ Not secure'} · ✅ JS running`;
 
-    copyBtn.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(codeEl.textContent); copyBtn.textContent = 'Copied!'; setTimeout(()=>copyBtn.textContent='Copy', 1200); } catch {}
-    });
-    rescanBtn.addEventListener('click', () => {
-      codeEl.textContent = 'No code scanned yet.';
-      fmtEl.textContent = '—';
-      copyBtn.disabled = true;
-      rescanBtn.disabled = true;
-    });
+    function setStatus(msg){ if(statusEl) statusEl.innerHTML = msg; }
+    function flash(){ preview.classList.remove('flash'); void preview.offsetWidth; preview.classList.add('flash'); }
 
-    // Capability note
-    capsEl.textContent = `${('mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices) ? '🎥 Camera OK' : '🚫 No camera'} · ${('clipboard' in navigator) ? '📋 Copy OK' : '📋 Copy limited'}`;
-
-    // ======= Tabs (Camera / HID) =======
-    const tabCamera = $('#tab-camera');
-    const tabHid = $('#tab-hid');
-    const cameraPanel = $('#cameraPanel');
-    const hidPanel = $('#hidPanel');
-
-    function activateTab(which) {
-      const cam = which === 'camera';
+    // ---------- Tabs (now with actions) ----------
+    const tabCamera = $('#tab-camera'), tabHid = $('#tab-hid');
+    const cameraPanel = $('#cameraPanel'), hidPanel = $('#hidPanel');
+    function activateTab(which){
+      const cam = which==='camera';
       tabCamera.setAttribute('aria-selected', cam);
       tabHid.setAttribute('aria-selected', !cam);
       cameraPanel.classList.toggle('panel-active', cam);
       hidPanel.classList.toggle('panel-active', !cam);
-      if (!cam) stopCamera();
-      if (!cam) setTimeout(()=>$('#hidInput').focus(), 100);
+      if (cam) {
+        // Auto-start camera if not running
+        if (!currentStream) startCamera();
+      } else {
+        // Stop camera, focus HID input, show ready state
+        stopCamera();
+        const inp = $('#hidInput');
+        if (inp){ inp.focus(); }
+        const ts = $('#typeStatus');
+        if (ts){ ts.textContent = 'Ready — scan now'; }
+      }
     }
     tabCamera.addEventListener('click', ()=>activateTab('camera'));
     tabHid.addEventListener('click', ()=>activateTab('hid'));
 
-    // ======= Camera Scanning (html5-qrcode) =======
-    let html5QrCode = null;
-    let curCamId = null;
-
-    const config = {
-      fps: 12,
-      // A wide but not too tall scan box helps with 1D barcodes
-      qrbox: function(viewportWidth, viewportHeight) {
-        const width = Math.min(viewportWidth - 32, 480);
-        const height = Math.max(140, Math.floor(width * 0.35));
-        return { width, height };
-      },
-      rememberLastUsedCamera: true,
-      // Try many common formats (1D + QR) — library maps these to ZXing under the hood
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.ITF,
-        Html5QrcodeSupportedFormats.QR_CODE
-      ]
-    };
-
-    async function pickCameraIdPreferRear(cameras) {
-      if (!cameras || !cameras.length) return null;
-      // Prefer label hints like "back" / "rear" / "environment"
-      const rear = cameras.find(c => /back|rear|environment/i.test(c.label));
-      return (rear || cameras[0]).id;
+    // ---------- Camera core (no libs) ----------
+    async function listCamerasAfterPermission(){
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        cameras = devices.filter(d=>d.kind==='videoinput');
+        if (camIndex < 0 && cameras.length) camIndex = 0;
+      } catch { cameras = []; }
     }
 
-    async function startCamera() {
-    if (html5QrCode) return; // already running
-    try {
-        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-        setStatus('<span style="color:var(--warn)">Tip:</span> Use HTTPS (GitHub Pages/Netlify/etc.).');
-        }
-        setStatus('Requesting camera…');
+    function attachStream(stream){
+      stopCamera(); // stop any previous
+      currentStream = stream;
+      videoEl.srcObject = stream;
+      videoEl.autoplay = true;
+      videoEl.muted = true;
+      preview.innerHTML = '';
+      preview.appendChild(videoEl);
+    }
 
-        let cams = [];
-        try { cams = await Html5Qrcode.getCameras(); } catch {}
+    async function startCamera(){
+      flash();
+      setStatus('Start clicked ✓ — requesting camera…');
+      $('#btnStart').disabled = true; $('#btnStart').textContent = 'Starting…';
 
-        html5QrCode = new Html5Qrcode('reader');
+      if (!camCap){ setStatus('<span style="color:#ef4444">Camera API not supported in this browser.</span>'); $('#btnStart').disabled=false; $('#btnStart').textContent='Start camera'; return; }
+      if (!secure){ setStatus('<span style="color:#f59e0b">Tip:</span> Use HTTPS or localhost — many browsers block camera on HTTP.'); }
 
-        // Prefer a concrete deviceId if we have one; otherwise use facingMode fallback (works better on iOS).
-        if (cams && cams.length) {
-        curCamId = await pickCameraIdPreferRear(cams);
-        await html5QrCode.start(
-            { deviceId: { exact: curCamId } },
-            config,
-            onScan,
-            onScanError
-        );
-        } else {
-        await html5QrCode.start(
-            { facingMode: 'environment' },
-            config,
-            onScan,
-            onScanError
-        );
-        }
-
-        $('#btnStart').disabled = true;
+      try{
+        // Prefer rear camera; desktop may ignore facingMode
+        const constraints = { video: { facingMode: { ideal: 'environment' } }, audio:false };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        attachStream(stream);
+        setStatus('Camera running — live preview above.');
         $('#btnStop').disabled = false;
-        try { cams = await Html5Qrcode.getCameras(); } catch {}
-        $('#btnFlip').disabled = !(cams && cams.length >= 2);
-        setStatus('Point the camera at a barcode.');
-    } catch (e) {
-        setStatus(`<span style="color:var(--error)">Camera error:</span> ${e.message || e}. Try **Request permission** and ensure HTTPS.`);
-        stopCamera();
-    }
-    }
 
-    function onScan(decodedText, result) {
-    const fmt = (result && result.result && result.result.format && result.result.format.formatName)
-            || (result && result.format && result.format.formatName) || 'Unknown';
-    showResult(decodedText, fmt);
-    throttleReads();
-    }
-    function onScanError(_) { /* ignore per-frame decode errors */ }
-
-    async function stopCamera() {
-      try {
-        if (html5QrCode) {
-          await html5QrCode.stop();
-          await html5QrCode.clear();
-        }
-      } catch {}
-      html5QrCode = null; curCamId = null;
-      $('#btnStart').disabled = false;
-      $('#btnStop').disabled = true;
-      $('#btnFlip').disabled = true;
-      setStatus('Stopped. Tap Start to scan again.');
-    }
-
-    async function flipCamera() {
-      if (!html5QrCode) return;
-      try {
-        const cams = await Html5Qrcode.getCameras();
-        if (!cams || cams.length < 2) return;
-        const idx = cams.findIndex(c => c.id === curCamId);
-        const next = cams[(idx + 1) % cams.length];
-        await html5QrCode.stop();
-        await html5QrCode.clear();
-        curCamId = next.id;
-        html5QrCode = new Html5Qrcode('reader');
-        await html5QrCode.start({ deviceId: { exact: curCamId } }, config, (txt, res) => {
-          const fmt = (res && res.result && res.result.format && res.result.format.formatName) || (res && res.format && res.format.formatName) || 'Unknown';
-          showResult(txt, fmt);
-          throttleReads();
-        });
-        setStatus('Switched camera.');
-      } catch (e) {
-        setStatus(`<span style="color:var(--error)">Flip failed:</span> ${e.message || e}`);
+        await listCamerasAfterPermission();
+        $('#btnFlip').disabled = !(cameras && cameras.length >= 2);
+      }catch(e){
+        setStatus(`<span style="color:#ef4444">Camera error:</span> ${e.message || e}`);
+        $('#btnStart').disabled=false; $('#btnStart').textContent='Start camera';
       }
     }
 
-    // Prevent multiple hits from the same frame burst
-    let readCooldown = false;
-    function throttleReads(ms = 800) {
-      if (readCooldown) return;
-      readCooldown = true;
-      setTimeout(()=> readCooldown = false, ms);
+    async function stopCamera(){
+      try{ if (currentStream){ currentStream.getTracks().forEach(t=>t.stop()); } }catch{}
+      currentStream = null;
+      $('#btnStart').disabled = false; $('#btnStart').textContent = 'Start camera';
+      $('#btnStop').disabled = true;
+      // keep Flip state
     }
 
-    $('#btnStart').addEventListener('click', startCamera);
-    $('#btnStop').addEventListener('click', stopCamera);
-    $('#btnFlip').addEventListener('click', flipCamera);
+    async function flipCamera(){
+      if (!cameras || cameras.length < 2) return;
+      try{
+        camIndex = (camIndex + 1) % cameras.length;
+        const deviceId = cameras[camIndex].deviceId;
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } }, audio:false });
+        attachStream(stream);
+        setStatus(`Switched camera (${cameras[camIndex].label || 'camera ' + (camIndex+1)})`);
+      }catch(e){
+        setStatus(`<span style="color:#ef4444">Flip failed:</span> ${e.message || e}`);
+      }
+    }
 
-    // ======= HID Scanner Mode =======
+    // ---------- HID typing (proof of wiring) ----------
     const hidInput = $('#hidInput');
     const hidAuto = $('#hidAuto');
     const btnClearHid = $('#btnClearHid');
+    const typeStatus = $('#typeStatus');
+    const hidEcho = $('#hidEcho');
+    let typeTimer=null; const DONE_GAP_MS=120;
 
-    let typeTimer = null;
-    const DONE_GAP_MS = 80; // gap after which we consider the scan complete
-
-    function finishHidScan() {
-      if (!hidInput.value) return;
-      const text = hidInput.value.trim();
-      if (!text) return;
-      showResult(text, 'HID/Keyboard');
+    function doneTyping(){
+      const text=(hidInput.value||'').trim();
+      if(!text) return;
+      if(typeStatus) typeStatus.textContent='Read complete';
+      if(hidEcho) hidEcho.textContent = text;
       hidInput.select();
     }
+    hidInput.addEventListener('keydown', (e)=> {
+      if(typeStatus) typeStatus.textContent='⌨️ Key press detected';
+      if(e.key==='Enter' || e.key==='Tab'){ e.preventDefault(); doneTyping(); }
+    });
+    hidInput.addEventListener('input', ()=> {
+      if(typeStatus) typeStatus.textContent='⌨️ Typing…';
+      if(hidEcho) hidEcho.textContent = hidInput.value;
+      if(!hidAuto.checked) return;
+      clearTimeout(typeTimer); typeTimer=setTimeout(doneTyping, DONE_GAP_MS);
+    });
+    btnClearHid.addEventListener('click', ()=>{ hidInput.value=''; hidInput.focus(); if(typeStatus) typeStatus.textContent=''; if(hidEcho) hidEcho.textContent='No input yet.'; });
 
-    hidInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === 'Tab') {
-        e.preventDefault();
-        finishHidScan();
+    // ---------- Buttons ----------
+    $('#btnStart').addEventListener('click', startCamera);
+    $('#btnStop').addEventListener('click', stopCamera);
+    $('#btnFlip').addEventListener('click', flipCamera);
+    $('#btnPerm').addEventListener('click', async ()=>{
+      setStatus('Requesting camera permission…');
+      try{
+        const s = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+        s.getTracks().forEach(t=>t.stop());
+        setStatus('Permission granted. Tap Start camera.');
+        await listCamerasAfterPermission();
+        $('#btnFlip').disabled = !(cameras && cameras.length >= 2);
+      }catch(e){
+        setStatus(`<span style="color:#ef4444">Permission denied:</span> ${e.message || e}`);
       }
     });
 
-    hidInput.addEventListener('input', () => {
-      if (!hidAuto.checked) return;
-      clearTimeout(typeTimer);
-      typeTimer = setTimeout(finishHidScan, DONE_GAP_MS);
+    // Show unexpected JS errors instead of “nothing happens”
+    window.addEventListener('error', (e)=>{
+      setStatus('<span style="color:#ef4444">JavaScript error:</span> ' + (e && e.message ? e.message : e));
     });
 
-    btnClearHid.addEventListener('click', () => { hidInput.value = ''; hidInput.focus(); });
-
-    // Focus HID input if we switch to that tab initially via URL hash
-    if (location.hash === '#hid') activateTab('hid');
-
-    // Try to start camera immediately after a user gesture (some browsers require it)
-    document.addEventListener('click', function initOnce() {
-      document.removeEventListener('click', initOnce);
-      // No auto-start; user will tap Start. But this ensures audio play allowed.
-    }, { once: true });
-
-    // Clean up on page hide
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) stopCamera();
-    });
-
-    $('#btnPerm').addEventListener('click', async () => {
-    setStatus('Requesting camera permission…');
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        stream.getTracks().forEach(t => t.stop()); // we just needed permission
-        setStatus('Permission granted. Tap Start camera.');
-    } catch (e) {
-        setStatus(`<span style="color:var(--error)">Permission denied:</span> ${e.message || e}. Check browser settings.`);
-    }
-    });
-
+    // Stop camera when backgrounded
+    document.addEventListener('visibilitychange', ()=>{ if(document.hidden) stopCamera(); });
   </script>
 </body>
 </html>
