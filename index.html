@@ -93,6 +93,7 @@
         <div id="reader" aria-label="Live camera preview area"></div>
         <div class="controls">
           <button id="btnStart" class="primary">Start camera</button>
+          <button id="btnPerm" class="secondary">Request permission</button>
           <button id="btnStop" class="secondary" disabled>Stop</button>
           <button id="btnFlip" class="secondary" disabled>Flip camera</button>
         </div>
@@ -216,34 +217,54 @@
     }
 
     async function startCamera() {
-      if (html5QrCode) return; // already running
-      try {
+    if (html5QrCode) return; // already running
+    try {
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        setStatus('<span style="color:var(--warn)">Tip:</span> Use HTTPS (GitHub Pages/Netlify/etc.).');
+        }
         setStatus('Requesting camera…');
-        const cams = await Html5Qrcode.getCameras();
-        curCamId = await pickCameraIdPreferRear(cams);
-        if (!curCamId) throw new Error('No camera found');
+
+        let cams = [];
+        try { cams = await Html5Qrcode.getCameras(); } catch {}
+
         html5QrCode = new Html5Qrcode('reader');
+
+        // Prefer a concrete deviceId if we have one; otherwise use facingMode fallback (works better on iOS).
+        if (cams && cams.length) {
+        curCamId = await pickCameraIdPreferRear(cams);
         await html5QrCode.start(
-          { deviceId: { exact: curCamId } },
-          config,
-          (decodedText, result) => {
-            // Got a code!
-            const fmt = (result && result.result && result.result.format && result.result.format.formatName) || (result && result.format && result.format.formatName) || 'Unknown';
-            showResult(decodedText, fmt);
-            // Pause briefly to avoid rapid repeat reads
-            throttleReads();
-          },
-          (err) => { /* decoding failure; ignored to keep scanning */ }
+            { deviceId: { exact: curCamId } },
+            config,
+            onScan,
+            onScanError
         );
+        } else {
+        await html5QrCode.start(
+            { facingMode: 'environment' },
+            config,
+            onScan,
+            onScanError
+        );
+        }
+
         $('#btnStart').disabled = true;
         $('#btnStop').disabled = false;
-        $('#btnFlip').disabled = cams.length < 2;
+        try { cams = await Html5Qrcode.getCameras(); } catch {}
+        $('#btnFlip').disabled = !(cams && cams.length >= 2);
         setStatus('Point the camera at a barcode.');
-      } catch (e) {
-        setStatus(`<span style="color:var(--error)">Camera error:</span> ${e.message || e}`);
+    } catch (e) {
+        setStatus(`<span style="color:var(--error)">Camera error:</span> ${e.message || e}. Try **Request permission** and ensure HTTPS.`);
         stopCamera();
-      }
     }
+    }
+
+    function onScan(decodedText, result) {
+    const fmt = (result && result.result && result.result.format && result.result.format.formatName)
+            || (result && result.format && result.format.formatName) || 'Unknown';
+    showResult(decodedText, fmt);
+    throttleReads();
+    }
+    function onScanError(_) { /* ignore per-frame decode errors */ }
 
     async function stopCamera() {
       try {
@@ -337,6 +358,18 @@
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) stopCamera();
     });
+
+    $('#btnPerm').addEventListener('click', async () => {
+    setStatus('Requesting camera permission…');
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        stream.getTracks().forEach(t => t.stop()); // we just needed permission
+        setStatus('Permission granted. Tap Start camera.');
+    } catch (e) {
+        setStatus(`<span style="color:var(--error)">Permission denied:</span> ${e.message || e}. Check browser settings.`);
+    }
+    });
+
   </script>
 </body>
 </html>
